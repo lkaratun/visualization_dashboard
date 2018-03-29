@@ -20,30 +20,85 @@ let yLabel = "Viewer rating";
 var allData;
 var yearScale;
 
+
+// // Retrieve all data from movies_metadata.csv and store it in allData array. Store selected year's data in yearData array
+// d3.csv("movies_metadata.csv", row => {
+// 			//Only keep rows with all keys having valid values
+// 			if (row[xDataSelector] == 0  || row[yDataSelector] == 0 || row[rDataSelector] == 0
+// 				|| row[cDataSelector] == 0 || row.release_date  == 0|| !row.title) return;
+// 			yearsList.add(+row.release_date.slice(0,4));
+// 			if (+row.release_date.slice(0,4) == 22) console.log(row);
+// 			return {
+// 				id: +row.id,
+// 				name: row.title,
+// 				year: +row.release_date.slice(0,4),
+// 				budget: +row.budget,
+// 				popularity: +row.popularity,
+// 				runtime: +row.runtime,
+// 				vote_average: +row.vote_average,
+// 				poster_path: row.poster_path
+// 			}
+// 		})
+// 	.then(response => {
+// 			allData = response;
+// 			downloadCSV();
+// }).catch(e => {
+//     console.log(e);
+// });
+
+
 //Retrieve all data from movies_metadata.csv and store it in allData array. Store selected year's data in yearData array
-d3.queue()
-		// .defer(d3.csv, "movies_metadata.csv", row => {
-		// 	//Only keep rows with all keys having valid values
-		// 	if (!row[xDataSelector]  || !row[yDataSelector] || !row[rDataSelector]
-		// 		|| !row[cDataSelector]  || !row.release_date || !row.title) return;
-		// 	yearsList.add(+row.release_date.slice(0,4));
-		// 	if (+row.release_date.slice(0,4) == 22) console.log(row);
-		// 	return {
-		// 		id: +row.id,
-		// 		name: row.title,
-		// 		year: +row.release_date.slice(0,4),
-		// 		budget: +row.budget,
-		// 		popularity: +row.popularity,
-		// 		runtime: +row.runtime,
-		// 		vote_average: +row.vote_average,
-		// 		poster_path: row.poster_path
-		// 	}
-		// })
-		.defer(d3.csv, "allData.csv")
-		.await((error, movies) => {
-			if (error) throw error;
-			allData = movies;
-			allData.forEach(d => yearsList.add(d.year));
+// d3.queue()
+// 		.defer(d3.dsv, "\\\\", "allData.csv", row => {
+// 			console.log(row);
+// 			yearsList.add(+row.year);
+// 			if (+row.year<1850 || +row.year>2017) console.log(row);
+// 			return {
+// 				id: +row.id,
+// 				name: row.name,
+// 				year: +row.year,
+// 				budget: +row.budget,
+// 				popularity: +row.popularity,
+// 				runtime: +row.runtime,
+// 				vote_average: +row.vote_average,
+// 				poster_path: row.poster_path
+// 			}
+// 		})
+// 		.await((error, movies) => {
+// 			if (error) throw error;
+// 			allData = movies;
+// 			// allData.forEach(d => yearsList.add(d.year));
+// 			yearsList = Array.from(yearsList).sort((a,b) => a-b);
+// 			//values of year slider
+// 			let indicesList = [];
+// 			yearsList.forEach((value, index) => indicesList.push(index));
+// 			yearScale = d3.scaleOrdinal()
+// 								           .domain(indicesList)
+// 								           .range(yearsList);
+// 			slider
+// 				.attr("min", 0)
+// 				.attr("max", yearsList.length - 1)
+// 				.attr("value", yearsList.length - 1);
+// 			drawPlot(2017);
+// 		});
+
+d3.dsv("|", "allData.csv", row => {
+			// console.log(row);
+			yearsList.add(+row.year);
+			if (+row.year<1850 || +row.year>2017) console.log(row);
+			return {
+				id: +row.id,
+				name: row.name,
+				year: +row.year,
+				budget: +row.budget,
+				popularity: +row.popularity,
+				runtime: +row.runtime,
+				vote_average: +row.vote_average,
+				poster_path: row.poster_path
+			}})
+	.then(response => {
+			allData = response;
+			// allData.forEach(d => yearsList.add(d.year));
 			yearsList = Array.from(yearsList).sort((a,b) => a-b);
 			//values of year slider
 			let indicesList = [];
@@ -56,8 +111,10 @@ d3.queue()
 				.attr("max", yearsList.length - 1)
 				.attr("value", yearsList.length - 1);
 			drawPlot(2017);
-			// downloadCSV();
-		});
+}).catch(e => {
+    console.log(e);
+});
+
 
 function drawPlot (year) {
 	yearData = allData.filter(d => d.year == year);
@@ -112,19 +169,7 @@ function drawPlot (year) {
 					.data(yearData, d => d.id);
 
 
-	//tooltips
-	// let tooltip = d3.select(".tooltip");
-	// svg
-	// 	.selectAll("circle")
-	// 	.on("mousemove", (d) => {
-	// 	console.log("Mouse moved");
-	// 	tooltip
-	// 		.style("opacity", 1)
-	// 		.text(d.country)
-	// 		.style("left", d3.event.x - tooltip.node().offsetWidth/2 + "px")
-	// 		.style("top", d3.event.y - 75 + "px");
-	// 	})
-	// 	.on("mouseout", () => tooltip.style("opacity", 0));
+
 
 
 
@@ -168,13 +213,28 @@ function drawPlot (year) {
 			.attr("cy", d => d[yDataSelector] ? yScale(d[yDataSelector]) : svgHeight - padding)
 		.merge(points)
 		.transition()
-		.duration(1000)
-		.delay((d, i) => i * 3)
+		.duration(300)
+		// .delay((d, i) => i * 3)
 			.attr("cx", d => d[xDataSelector] ? xScale(d[xDataSelector]) : padding)
 			.attr("cy", d => d[yDataSelector] ? yScale(d[yDataSelector]) : svgHeight - padding)
-			.attr("fill", d => d[cDataSelector] ? colorScale(d[cDataSelector]) : "#e1e1d0")
+			// .attr("fill", d => d[cDataSelector] ? colorScale(d[cDataSelector]) : "#e1e1d0")
+			.attr("fill", "#333333")
 			// .attr("r", 10)
 			.attr("r", d => d[rDataSelector] && d[yDataSelector] && d[xDataSelector] ? radiusScale(d[rDataSelector]) : 0)
+
+	//tooltips
+	let tooltip = d3.select(".tooltip");
+	svg
+		.selectAll("circle")
+		.on("mousemove", (d) => {
+		console.log("Mouse moved");
+		tooltip
+			.style("opacity", 1)
+			.text(d.name)
+			.style("left", d3.event.x - tooltip.node().offsetWidth/2 + "px")
+			.style("top", d3.event.y - 75 + "px");
+		})
+		.on("mouseout", () => tooltip.style("opacity", 0));
 
 } // DrawPlot
 
@@ -203,7 +263,10 @@ function convertArrayOfObjectsToCSV(args) {
             keys.forEach(function(key) {
                 if (ctr > 0) result += columnDelimiter;
 
-                result += item[key];
+                // if (key === "name")
+                	// result += `"${item[key]}"`;
+                // else
+                	result += item[key];
                 ctr++;
             });
             result += lineDelimiter;
@@ -212,31 +275,32 @@ function convertArrayOfObjectsToCSV(args) {
         return result;
     }
 
-function downloadCSV(args) {
-        var data, filename;
-        var csv = convertArrayOfObjectsToCSV({
-            data: allData
-        });
-        if (csv == null) return;
+// function downloadCSV(args) {
+//         var data, filename;
+//         var csv = convertArrayOfObjectsToCSV({
+//             data: allData
+//         });
+//         if (csv == null) return;
 
-        filename = 'export.csv';
+//         filename = 'export.csv';
 
-        if (!csv.match(/^data:text\/csv/i)) {
-            csv = 'data:text/csv;charset=utf-8,' + csv;
-        }
-        data = encodeURI(csv);
-        // console.log(data);
-        // console.log(csv);
-        link = document.createElement('a');
-        link.setAttribute('href', data);
-        link.setAttribute('download', filename);
-        link.click();
-    }
+//         if (!csv.match(/^data:text\/csv/i)) {
+//             csv = 'data:text/csv;charset=utf-8,' + csv;
+//         }
+//         data = encodeURI(csv);
+//         // console.log(data);
+//         // console.log(csv);
+//         link = document.createElement('a');
+//         link.setAttribute('href', data);
+//         link.setAttribute('download', filename);
+//         link.click();
+//     }
 
 function downloadCSV(args) {
 	var data, filename, link;
 	var csv = convertArrayOfObjectsToCSV({
-		data: allData
+		data: allData,
+		columnDelimiter: "|"
 	});
 	if (csv == null)
 		return;
