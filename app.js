@@ -1,13 +1,17 @@
+
 var data, filename, link;
-const svgWidth = 600;
+const svgWidth = 800;
 const svgHeight = 600;
 const padding = 60;
-const svg = d3.select("svg")
+const scatterPlot = d3.select("#scatterPlot")
+				.attr("width", svgWidth)
+				.attr("height", svgHeight);
+const worldMap = d3.select("#worldMap")
 				.attr("width", svgWidth)
 				.attr("height", svgHeight);
 const slider = d3.select("#year");
 
-var xData, yData, rData, cData, xScale, yScale;
+var xData, yData, rData, cData, xScale, yScale, colorScale;
 var year = 1995;
 var yearData;
 let yearsList = new Set();
@@ -27,7 +31,6 @@ var yearScale;
 // 			if (row[xDataSelector] == 0  || row[yDataSelector] == 0 || row[rDataSelector] == 0
 // 				|| row[cDataSelector] == 0 || row.release_date  == 0|| !row.title) return;
 // 			yearsList.add(+row.release_date.slice(0,4));
-// 			if (+row.release_date.slice(0,4) == 22) console.log(row);
 // 			return {
 // 				id: +row.id,
 // 				name: row.title,
@@ -36,7 +39,8 @@ var yearScale;
 // 				popularity: +row.popularity,
 // 				runtime: +row.runtime,
 // 				vote_average: +row.vote_average,
-// 				poster_path: row.poster_path
+// 				poster_path: row.poster_path,
+// 				production_countries: row.production_countries
 // 			}
 // 		})
 // 	.then(response => {
@@ -47,45 +51,9 @@ var yearScale;
 // });
 
 
-//Retrieve all data from movies_metadata.csv and store it in allData array. Store selected year's data in yearData array
-// d3.queue()
-// 		.defer(d3.dsv, "\\\\", "allData.csv", row => {
-// 			console.log(row);
-// 			yearsList.add(+row.year);
-// 			if (+row.year<1850 || +row.year>2017) console.log(row);
-// 			return {
-// 				id: +row.id,
-// 				name: row.name,
-// 				year: +row.year,
-// 				budget: +row.budget,
-// 				popularity: +row.popularity,
-// 				runtime: +row.runtime,
-// 				vote_average: +row.vote_average,
-// 				poster_path: row.poster_path
-// 			}
-// 		})
-// 		.await((error, movies) => {
-// 			if (error) throw error;
-// 			allData = movies;
-// 			// allData.forEach(d => yearsList.add(d.year));
-// 			yearsList = Array.from(yearsList).sort((a,b) => a-b);
-// 			//values of year slider
-// 			let indicesList = [];
-// 			yearsList.forEach((value, index) => indicesList.push(index));
-// 			yearScale = d3.scaleOrdinal()
-// 								           .domain(indicesList)
-// 								           .range(yearsList);
-// 			slider
-// 				.attr("min", 0)
-// 				.attr("max", yearsList.length - 1)
-// 				.attr("value", yearsList.length - 1);
-// 			drawPlot(2017);
-// 		});
-
-d3.dsv("|", "allData.csv", row => {
-			// console.log(row);
+d3.dsv("|", "allData.dsv", row => {
 			yearsList.add(+row.year);
-			if (+row.year<1850 || +row.year>2017) console.log(row);
+			// console.log(row);
 			return {
 				id: +row.id,
 				name: row.name,
@@ -94,13 +62,17 @@ d3.dsv("|", "allData.csv", row => {
 				popularity: +row.popularity,
 				runtime: +row.runtime,
 				vote_average: +row.vote_average,
-				poster_path: row.poster_path
+				poster_path: row.poster_path,
+				production_countries: JSON.parse(row.production_countries.replace(/'/g, '"'))
 			}})
 	.then(response => {
 			allData = response;
-			// allData.forEach(d => yearsList.add(d.year));
 			yearsList = Array.from(yearsList).sort((a,b) => a-b);
+			let movieCount = new Map();
+			allData.forEach(d => movieCount.set(d.year, (movieCount.get(d.year) + 1) || 1));
+			console.log(movieCount);
 			//values of year slider
+
 			let indicesList = [];
 			yearsList.forEach((value, index) => indicesList.push(index));
 			yearScale = d3.scaleOrdinal()
@@ -110,14 +82,19 @@ d3.dsv("|", "allData.csv", row => {
 				.attr("min", 0)
 				.attr("max", yearsList.length - 1)
 				.attr("value", yearsList.length - 1);
-			drawPlot(2017);
+			drawScatterPlot(2017);
+			drawMap();
 }).catch(e => {
     console.log(e);
 });
 
 
-function drawPlot (year) {
+
+
+
+function drawScatterPlot (year) {
 	yearData = allData.filter(d => d.year == year);
+	//Choose whether to use all data or current year's data for axes and grid scaling
 	let dataForScaling = d3.select("#scaleToCurrentYear").property("checked") ? yearData : allData;
 
 	xScale = d3.scaleLinear()
@@ -133,48 +110,43 @@ function drawPlot (year) {
 	let yAxis = d3.axisLeft(yScale)
 					.tickSize(-svgWidth + 2 * padding)
 					.tickSizeOuter(0);
-	let colorScale = d3.scaleLinear()
+	colorScale = d3.scaleLinear()
 					.domain(d3.extent(yearData, d => d[cDataSelector]))
 					.range([d3.rgb("#66ff33"), d3.rgb("#cc0000")]);
 	let radiusScale = d3.scaleLinear()
 					.domain(d3.extent(yearData, d => d[rDataSelector]))
 					.range([3, 12]);
 
-	svg
+	scatterPlot
 		.selectAll("g")
 		.remove();
 
-	svg
+	scatterPlot
 		.selectAll("text")
 		.remove();
 
-	svg
+	scatterPlot
 		.selectAll("circle")
 		.data(yearData, d => d.id)
 		.exit()
 		.remove();
 
 	//Draw axes
-	svg
+	scatterPlot
 		.append("g")
 		.call(xAxis)
 		.attr("transform", `translate (0, ${svgHeight - padding})`);
-	svg
+	scatterPlot
 		.append("g")
 		.call(yAxis)
 		.attr("transform", `translate (${padding}, 0)`);
 
-	let points = svg
+	let points = scatterPlot
 					.selectAll("circle")
 					.data(yearData, d => d.id);
 
-
-
-
-
-
 	// Plot label
-	svg
+	scatterPlot
 		.append("text")
 		.text(`${yLabel} vs ${xLabel} (${year})`)
 		.attr("x", svgWidth / 2)
@@ -185,7 +157,7 @@ function drawPlot (year) {
 
 	// Axes labels
 	// X axis
-	svg
+	scatterPlot
 		.append("text")
 		.text(xLabel)
 		.attr("x", svgWidth / 2)
@@ -195,7 +167,7 @@ function drawPlot (year) {
 		.attr("text-anchor", "middle");
 
 	// Y axis
-	svg
+	scatterPlot
 		.append("text")
 		.text(yLabel)
 		.attr("transform", "rotate(-90)")
@@ -222,26 +194,116 @@ function drawPlot (year) {
 			// .attr("r", 10)
 			.attr("r", d => d[rDataSelector] && d[yDataSelector] && d[xDataSelector] ? radiusScale(d[rDataSelector]) : 0)
 
+	let imgBaseUrl = 'http://image.tmdb.org/t/p/w154/';
 	//tooltips
 	let tooltip = d3.select(".tooltip");
-	svg
+	scatterPlot
 		.selectAll("circle")
 		.on("mousemove", (d) => {
-		console.log("Mouse moved");
 		tooltip
 			.style("opacity", 1)
-			.text(d.name)
-			.style("left", d3.event.x - tooltip.node().offsetWidth/2 + "px")
-			.style("top", d3.event.y - 75 + "px");
+			.html(`
+				<b style="display: block">${d.name}</b>
+				<img style="display: block" src="${imgBaseUrl + d.poster_path}" alt="" />
+
+
+				`)
+			.style("left", d3.event.x /*- tooltip.node().offsetWidth/2*/ + 5 + "px")
+			.style("top", d3.event.y + "px");
 		})
 		.on("mouseout", () => tooltip.style("opacity", 0));
 
-} // DrawPlot
+} // DrawScatterPlot
 
 
-slider.on("input", () => {console.log(yearScale(+d3.event.target.value)); drawPlot(yearScale(+d3.event.target.value))});
+slider.on("input", () => {console.log(yearScale(+d3.event.target.value)); drawScatterPlot(yearScale(+d3.event.target.value))});
+
+
+async function drawMap() {
+	let mapData = await d3.json('mapData.json');
+	//File containing country codes, particularly letter and numeric versions
+	let countryCodes = await d3.json('countryCodes.json');
+	//Hashmap to convert letter country code to numeric
+	let codeLetterToNumeric = new Map();
+	let codeNumericToName = new Map();
+	countryCodes.forEach(d => {
+		codeLetterToNumeric.set(d["alpha-2"], d["country-code"]);
+		codeNumericToName.set(d["country-code"], d["name"]);
+	});
+	console.log(codeLetterToNumeric);
+	console.log(mapData);
+	var geoData = topojson.feature(mapData, mapData.objects.countries).features;
+	geoData.forEach(d => d.properties = {movies: []});
+	// console.log(geoData);
+
+	//Fill geoData with Movies data
+	allData.forEach(row => {
+      var countries = geoData.filter(geoDataEntry => {
+      	for (productionCountry of row.production_countries)
+      		if (codeLetterToNumeric.get(productionCountry.iso_3166_1) === geoDataEntry.id)
+      			return true;
+      });
+      countries.forEach(country => country.properties.movies.push(row));
+    });
+    console.log(geoData);
+
+    yearData = allData.filter(d => d.year == year);
+
+
+
+	// let colorScale = d3.scaleLinear()
+	// 				.domain(d3.extent(geoData, d => d.properties.movies.length))
+	// 				.range([d3.rgb("#66ff33"), d3.rgb("#cc0000")]);
+	colorScale = d3.scaleLog()
+					// Adding 1 for log scale to work correctly
+					.domain(d3.extent(geoData, d => d.properties.movies.length+1))
+					.range([d3.rgb("#66ff33"), d3.rgb("#cc0000")]);
+	// console.log(colorScale);
+
+    var projection = //d3.geoMercator()
+                       d3.geoNaturalEarth1().scale(120)
+                       .translate([svgWidth * 0.35, svgHeight * 0.4]);
+
+    var path = d3.geoPath()
+                 .projection(projection);
+
+    worldMap
+      .selectAll(".country")
+      .data(geoData)
+      .enter()
+        .append("path")
+        .classed("country", true)
+        .attr("d", path)
+        .attr("fill", d => d.properties.movies.length ? colorScale(d.properties.movies.length) : "#DDDDDD");
+
+	//tooltips
+	let tooltip = d3.select(".tooltip");
+	worldMap
+		.selectAll("path")
+		.on("mousemove", (d) => {
+		tooltip
+			.style("opacity", 1)
+			.text(codeNumericToName.get(d.id))
+			.style("left", d3.event.x - tooltip.node().offsetWidth/2 + "px")
+			.style("top", d3.event.y - 35 + "px");
+		})
+		.on("mouseout", () => tooltip.style("opacity", 0));
+
+
+
+} //drawMap
+
+
+
+// document.addEventListener("DOMContentLoaded", () => {
+// 	let year = d3.select('#year').attr('value');
+// 	drawScatterPlot(year);
+// });
+
+
 
 function convertArrayOfObjectsToCSV(args) {
+		console.log("Entered convertArrayOfObjectsToCSV");
         var result, ctr, keys, columnDelimiter, lineDelimiter, data;
 
         data = args.data || null;
@@ -275,28 +337,8 @@ function convertArrayOfObjectsToCSV(args) {
         return result;
     }
 
-// function downloadCSV(args) {
-//         var data, filename;
-//         var csv = convertArrayOfObjectsToCSV({
-//             data: allData
-//         });
-//         if (csv == null) return;
-
-//         filename = 'export.csv';
-
-//         if (!csv.match(/^data:text\/csv/i)) {
-//             csv = 'data:text/csv;charset=utf-8,' + csv;
-//         }
-//         data = encodeURI(csv);
-//         // console.log(data);
-//         // console.log(csv);
-//         link = document.createElement('a');
-//         link.setAttribute('href', data);
-//         link.setAttribute('download', filename);
-//         link.click();
-//     }
-
 function downloadCSV(args) {
+	console.log("Entered downloadCSV");
 	var data, filename, link;
 	var csv = convertArrayOfObjectsToCSV({
 		data: allData,
@@ -330,9 +372,3 @@ function downloadCSV(args) {
 	}
 	}
 }
-
-
-// document.addEventListener("DOMContentLoaded", () => {
-// 	let year = d3.select('#year').attr('value');
-// 	drawPlot(year);
-// });

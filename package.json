@@ -1,0 +1,27 @@
+{
+  "name": "visualization_dashboard",
+  "version": "1.0.0",
+  "description": "d3 movie data visualizations",
+  "main": "app.js",
+  "dependencies": {
+    "http-server": "^0.11.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lkaratun/visualization_dashboard.git"
+  },
+  "keywords": [
+    "d3",
+    "javascript"
+  ],
+  "author": "Lev Karatun",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lkaratun/visualization_dashboard/issues"
+  },
+  "homepage": "https://github.com/lkaratun/visualization_dashboard#readme"
+}
