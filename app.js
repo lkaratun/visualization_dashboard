@@ -1,7 +1,7 @@
 
 var data, filename, link;
-const svgWidth = 800;
-const svgHeight = 600;
+const svgWidth = 600;
+const svgHeight = 400;
 const padding = 60;
 const scatterPlot = d3.select("#scatterPlot")
 				.attr("width", svgWidth)
@@ -23,6 +23,7 @@ let xLabel = "Movie budget";
 let yLabel = "Viewer rating";
 var allData;
 var yearScale;
+const imgBaseUrl = 'http://image.tmdb.org/t/p/w154/';
 
 
 // // Retrieve all data from movies_metadata.csv and store it in allData array. Store selected year's data in yearData array
@@ -50,10 +51,16 @@ var yearScale;
 //     console.log(e);
 // });
 
+let tryLoadingData = true;
+loadAndDisplayData(tryLoadingData);
 
+
+
+function loadAndDisplayData(tryLoadingData) {
 d3.dsv("|", "allData.dsv", row => {
 			yearsList.add(+row.year);
-			// console.log(row);
+			 // console.log(+row.id);
+
 			return {
 				id: +row.id,
 				name: row.name,
@@ -63,14 +70,17 @@ d3.dsv("|", "allData.dsv", row => {
 				runtime: +row.runtime,
 				vote_average: +row.vote_average,
 				poster_path: row.poster_path,
-				production_countries: JSON.parse(row.production_countries.replace(/'/g, '"'))
+				production_countries: JSON.parse(row.production_countries.replace(/'/g, '"')),
+				overview: row.overview
 			}})
-	.then(response => {
-			allData = response;
+	.then(filteredMovies => {
+			console.log(filteredMovies);
+			allData = filteredMovies;
+
 			yearsList = Array.from(yearsList).sort((a,b) => a-b);
 			let movieCount = new Map();
 			allData.forEach(d => movieCount.set(d.year, (movieCount.get(d.year) + 1) || 1));
-			console.log(movieCount);
+			// console.log(movieCount);
 			//values of year slider
 
 			let indicesList = [];
@@ -82,18 +92,55 @@ d3.dsv("|", "allData.dsv", row => {
 				.attr("min", 0)
 				.attr("max", yearsList.length - 1)
 				.attr("value", yearsList.length - 1);
+			console.log(allData);
 			drawScatterPlot(2017);
+
 			drawMap();
+			displayMovieInfo(862);
 }).catch(e => {
     console.log(e);
+    if (tryLoadingData) {
+    	tryLoadingData = false;
+		// Retrieve all data from movies_metadata.csv and store it in allData array. Store selected year's data in yearData array
+		d3.csv("movies_metadata.csv", row => {
+					//Only keep rows with all keys having valid values
+					if (row[xDataSelector] == 0  || row[yDataSelector] == 0 || row[rDataSelector] == 0
+						|| row[cDataSelector] == 0 || row.release_date  == 0|| !row.title) return;
+					yearsList.add(+row.release_date.slice(0,4));
+					return {
+						id: +row.id,
+						name: row.title,
+						year: +row.release_date.slice(0,4),
+						budget: +row.budget,
+						popularity: +row.popularity,
+						runtime: +row.runtime,
+						vote_average: +row.vote_average,
+						poster_path: row.poster_path,
+						production_countries: row.production_countries,
+						overview: row.overview
+					}
+				})
+			.then(response => {
+					allData = response;
+					downloadCSV();
+					// loadAndDisplayData(tryLoadingData);
+		}).catch(e => {
+		    console.log(e);
+		});
+
+
+
+    }
 });
 
+}
 
 
 
 
 function drawScatterPlot (year) {
 	yearData = allData.filter(d => d.year == year);
+	console.log(allData);
 	//Choose whether to use all data or current year's data for axes and grid scaling
 	let dataForScaling = d3.select("#scaleToCurrentYear").property("checked") ? yearData : allData;
 
@@ -127,7 +174,7 @@ function drawScatterPlot (year) {
 
 	scatterPlot
 		.selectAll("circle")
-		.data(yearData, d => d.id)
+		.data(yearData)//, d => d.id)
 		.exit()
 		.remove();
 
@@ -143,7 +190,7 @@ function drawScatterPlot (year) {
 
 	let points = scatterPlot
 					.selectAll("circle")
-					.data(yearData, d => d.id);
+					.data(yearData);//, d => d.id);
 
 	// Plot label
 	scatterPlot
@@ -194,7 +241,7 @@ function drawScatterPlot (year) {
 			// .attr("r", 10)
 			.attr("r", d => d[rDataSelector] && d[yDataSelector] && d[xDataSelector] ? radiusScale(d[rDataSelector]) : 0)
 
-	let imgBaseUrl = 'http://image.tmdb.org/t/p/w154/';
+
 	//tooltips
 	let tooltip = d3.select(".tooltip");
 	scatterPlot
@@ -212,6 +259,14 @@ function drawScatterPlot (year) {
 			.style("top", d3.event.y + "px");
 		})
 		.on("mouseout", () => tooltip.style("opacity", 0));
+
+
+	//Show movie info on circle click
+	scatterPlot
+		.selectAll("circle")
+		.on("click", d => {
+			console.log (d);
+			displayMovieInfo(d.id)});
 
 } // DrawScatterPlot
 
@@ -250,15 +305,10 @@ async function drawMap() {
     yearData = allData.filter(d => d.year == year);
 
 
-
-	// let colorScale = d3.scaleLinear()
-	// 				.domain(d3.extent(geoData, d => d.properties.movies.length))
-	// 				.range([d3.rgb("#66ff33"), d3.rgb("#cc0000")]);
 	colorScale = d3.scaleLog()
 					// Adding 1 for log scale to work correctly
 					.domain(d3.extent(geoData, d => d.properties.movies.length+1))
 					.range([d3.rgb("#66ff33"), d3.rgb("#cc0000")]);
-	// console.log(colorScale);
 
     var projection = //d3.geoMercator()
                        d3.geoNaturalEarth1().scale(120)
@@ -288,17 +338,21 @@ async function drawMap() {
 			.style("top", d3.event.y - 35 + "px");
 		})
 		.on("mouseout", () => tooltip.style("opacity", 0));
-
-
-
 } //drawMap
 
+function displayMovieInfo (id){
 
+	let [movie] = allData.filter(d => d.id == id);
+	let htmlString = `
+	<h3>${movie.name} (${movie.year})</h3>
+	<h4>Budget: ${movie.budget}, runtime: ${movie.runtime}, rating: ${movie.vote_average}</h4>
+	<p><img style="display: block" src="${imgBaseUrl + movie.poster_path}" alt="Image poster not found" /></p>
+	<p>${movie.overview}</p>
+	`;
+	d3.select("#movieInfo")
+		.html(htmlString);
+}//displayMovieInfo
 
-// document.addEventListener("DOMContentLoaded", () => {
-// 	let year = d3.select('#year').attr('value');
-// 	drawScatterPlot(year);
-// });
 
 
 
@@ -347,7 +401,7 @@ function downloadCSV(args) {
 	if (csv == null)
 		return;
 
-	filename = 'YourFileNameHere.csv';
+	filename = 'allData.dsv';
 
 	var blob = new Blob([csv], {type: "text/csv;charset=utf-8;"});
 
@@ -372,3 +426,9 @@ function downloadCSV(args) {
 	}
 	}
 }
+
+
+// document.addEventListener("DOMContentLoaded", () => {
+// 	let year = d3.select('#year').attr('value');
+// 	drawScatterPlot(year);
+// });

@@ -11,7 +11,8 @@ svg {
 .flex-container {
   display: flex;
   align-items: flex-start;
-  justify-content: space-around;
+  justify-content: flex-start;
+  flex-flow: row wrap;
   margin: 20px;
 }
 
@@ -37,6 +38,9 @@ svg {
 	margin-left: -6px;
 }
 
+#slider, svg  {
+	display: block;
+}
 /*svg text {
 	text-transform: capitalize;
 }*/
