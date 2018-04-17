@@ -1,7 +1,6 @@
-
 var data, filename, link;
-const svgWidth = 600;
-const svgHeight = 400;
+const svgWidth = 800;
+const svgHeight = 600;
 const padding = 60;
 const scatterPlot = d3.select("#scatterPlot")
 				.attr("width", svgWidth)
@@ -24,7 +23,8 @@ let yLabel = "Viewer rating";
 var allData;
 var yearScale;
 const imgBaseUrl = 'http://image.tmdb.org/t/p/w154/';
-
+var codeLetterToNumeric = new Map();
+var codeNumericToName = new Map();
 
 // // Retrieve all data from movies_metadata.csv and store it in allData array. Store selected year's data in yearData array
 // d3.csv("movies_metadata.csv", row => {
@@ -56,10 +56,11 @@ loadAndDisplayData(tryLoadingData);
 
 
 
+
 function loadAndDisplayData(tryLoadingData) {
 d3.dsv("|", "allData.dsv", row => {
 			yearsList.add(+row.year);
-			 // console.log(+row.id);
+			 // console.log(row);
 
 			return {
 				id: +row.id,
@@ -71,10 +72,11 @@ d3.dsv("|", "allData.dsv", row => {
 				vote_average: +row.vote_average,
 				poster_path: row.poster_path,
 				production_countries: JSON.parse(row.production_countries.replace(/'/g, '"')),
-				overview: row.overview
+				overview: row.overview,
+				genres: JSON.parse(row.genres)
 			}})
 	.then(filteredMovies => {
-			console.log(filteredMovies);
+			// console.log(filteredMovies);
 			allData = filteredMovies;
 
 			yearsList = Array.from(yearsList).sort((a,b) => a-b);
@@ -97,6 +99,7 @@ d3.dsv("|", "allData.dsv", row => {
 
 			drawMap();
 			displayMovieInfo(862);
+			drawBarChart("RU");
 }).catch(e => {
     console.log(e);
     if (tryLoadingData) {
@@ -107,6 +110,21 @@ d3.dsv("|", "allData.dsv", row => {
 					if (row[xDataSelector] == 0  || row[yDataSelector] == 0 || row[rDataSelector] == 0
 						|| row[cDataSelector] == 0 || row.release_date  == 0|| !row.title) return;
 					yearsList.add(+row.release_date.slice(0,4));
+					// if (row.id == 36614) //console.log(row.overview)
+					// console.log( {
+					// 	id: +row.id,
+					// 	name: row.title,
+					// 	year: +row.release_date.slice(0,4),
+					// 	budget: +row.budget,
+					// 	popularity: +row.popularity,
+					// 	runtime: +row.runtime,
+					// 	vote_average: +row.vote_average,
+					// 	poster_path: row.poster_path,
+					// 	production_countries: row.production_countries,
+					// 	overview: row.overview,
+					// 	genres: row.genres.replace(/'/g, '"')
+					// });
+
 					return {
 						id: +row.id,
 						name: row.title,
@@ -117,7 +135,8 @@ d3.dsv("|", "allData.dsv", row => {
 						vote_average: +row.vote_average,
 						poster_path: row.poster_path,
 						production_countries: row.production_countries,
-						overview: row.overview
+						overview: row.overview,
+						genres: row.genres.replace(/'/g, '"')
 					}
 				})
 			.then(response => {
@@ -140,7 +159,7 @@ d3.dsv("|", "allData.dsv", row => {
 
 function drawScatterPlot (year) {
 	yearData = allData.filter(d => d.year == year);
-	console.log(allData);
+	// console.log(allData);
 	//Choose whether to use all data or current year's data for axes and grid scaling
 	let dataForScaling = d3.select("#scaleToCurrentYear").property("checked") ? yearData : allData;
 
@@ -182,11 +201,11 @@ function drawScatterPlot (year) {
 	scatterPlot
 		.append("g")
 		.call(xAxis)
-		.attr("transform", `translate (0, ${svgHeight - padding})`);
+			.attr("transform", `translate (0, ${svgHeight - padding})`);
 	scatterPlot
 		.append("g")
 		.call(yAxis)
-		.attr("transform", `translate (${padding}, 0)`);
+			.attr("transform", `translate (${padding}, 0)`);
 
 	let points = scatterPlot
 					.selectAll("circle")
@@ -239,8 +258,10 @@ function drawScatterPlot (year) {
 			// .attr("fill", d => d[cDataSelector] ? colorScale(d[cDataSelector]) : "#e1e1d0")
 			.attr("fill", "#333333")
 			// .attr("r", 10)
-			.attr("r", d => d[rDataSelector] && d[yDataSelector] && d[xDataSelector] ? radiusScale(d[rDataSelector]) : 0)
+			.attr("r", d => d[rDataSelector] && d[yDataSelector] && d[xDataSelector] ? radiusScale(d[rDataSelector]) : 0);
 
+	points
+		.moveToFront();
 
 	//tooltips
 	let tooltip = d3.select(".tooltip");
@@ -279,14 +300,13 @@ async function drawMap() {
 	//File containing country codes, particularly letter and numeric versions
 	let countryCodes = await d3.json('countryCodes.json');
 	//Hashmap to convert letter country code to numeric
-	let codeLetterToNumeric = new Map();
-	let codeNumericToName = new Map();
+
 	countryCodes.forEach(d => {
 		codeLetterToNumeric.set(d["alpha-2"], d["country-code"]);
 		codeNumericToName.set(d["country-code"], d["name"]);
 	});
-	console.log(codeLetterToNumeric);
-	console.log(mapData);
+	// console.log(codeLetterToNumeric);
+	// console.log(mapData);
 	var geoData = topojson.feature(mapData, mapData.objects.countries).features;
 	geoData.forEach(d => d.properties = {movies: []});
 	// console.log(geoData);
@@ -330,14 +350,17 @@ async function drawMap() {
 	let tooltip = d3.select(".tooltip");
 	worldMap
 		.selectAll("path")
-		.on("mousemove", (d) => {
+		.on("mousemove", d => {
 		tooltip
 			.style("opacity", 1)
 			.text(codeNumericToName.get(d.id))
 			.style("left", d3.event.x - tooltip.node().offsetWidth/2 + "px")
 			.style("top", d3.event.y - 35 + "px");
 		})
-		.on("mouseout", () => tooltip.style("opacity", 0));
+		.on("mouseout", () => tooltip.style("opacity", 0))
+		.on("click", d => drawBarChart(d.id));
+
+
 } //drawMap
 
 function displayMovieInfo (id){
@@ -353,7 +376,51 @@ function displayMovieInfo (id){
 		.html(htmlString);
 }//displayMovieInfo
 
+function drawBarChart(country) {
+	console.log(country);
+	let countryData = allData.filter(movie => movie.production_countries.some(d => codeLetterToNumeric.get(d.iso_3166_1) === country));
+	console.log(countryData);
 
+	//Count number or movies per genre for a given country
+	let genreData = new Map();
+	countryData.forEach(movie => {
+		movie.genres.forEach(genre => {
+			genreData.set(genre.name, genreData.get(genre.name) + 1 || 1);
+		})
+	});
+	genreData = Array.from(genreData);
+	console.log(genreData);
+	let barPadding = 3;
+	let barWidth = svgWidth / genreData.length - barPadding;
+	let bar_height_per_occurence = 10;
+
+
+	const barChart = d3.select("#barChart")
+						.attr("width", svgWidth)
+						.attr("height", svgHeight);
+
+	barChart
+		.selectAll(".bar")
+		.remove();
+
+	barChart
+		.selectAll(".bar")
+		.data(genreData, d => d[0])
+		.enter()
+		.append("rect")
+		.classed("bar", true)
+		.merge(barChart)
+			.attr("x", (d, i) => (barWidth+barPadding)*i)
+			.attr("y", d => {
+				console.log(d);
+				return svgHeight - bar_height_per_occurence*d[1]})
+			.attr("height", d => bar_height_per_occurence*d[1])
+			.attr("width", barWidth);
+
+
+
+
+} //drawBarChart
 
 
 function convertArrayOfObjectsToCSV(args) {
@@ -426,6 +493,8 @@ function downloadCSV(args) {
 	}
 	}
 }
+
+
 
 
 // document.addEventListener("DOMContentLoaded", () => {
