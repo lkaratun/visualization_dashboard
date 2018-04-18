@@ -41,6 +41,11 @@ svg {
 #slider, svg  {
 	display: block;
 }
+
+.barLabel {
+	fill: white;
+}
+
 /*svg text {
 	text-transform: capitalize;
 }*/

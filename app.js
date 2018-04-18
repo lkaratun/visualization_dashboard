@@ -1,13 +1,12 @@
+var temp;
 var data, filename, link;
 const svgWidth = 800;
-const svgHeight = 600;
+const svgHeight = 550;
 const padding = 60;
 const scatterPlot = d3.select("#scatterPlot")
 				.attr("width", svgWidth)
 				.attr("height", svgHeight);
-const worldMap = d3.select("#worldMap")
-				.attr("width", svgWidth)
-				.attr("height", svgHeight);
+
 const slider = d3.select("#year");
 
 var xData, yData, rData, cData, xScale, yScale, colorScale;
@@ -26,38 +25,13 @@ const imgBaseUrl = 'http://image.tmdb.org/t/p/w154/';
 var codeLetterToNumeric = new Map();
 var codeNumericToName = new Map();
 
-// // Retrieve all data from movies_metadata.csv and store it in allData array. Store selected year's data in yearData array
-// d3.csv("movies_metadata.csv", row => {
-// 			//Only keep rows with all keys having valid values
-// 			if (row[xDataSelector] == 0  || row[yDataSelector] == 0 || row[rDataSelector] == 0
-// 				|| row[cDataSelector] == 0 || row.release_date  == 0|| !row.title) return;
-// 			yearsList.add(+row.release_date.slice(0,4));
-// 			return {
-// 				id: +row.id,
-// 				name: row.title,
-// 				year: +row.release_date.slice(0,4),
-// 				budget: +row.budget,
-// 				popularity: +row.popularity,
-// 				runtime: +row.runtime,
-// 				vote_average: +row.vote_average,
-// 				poster_path: row.poster_path,
-// 				production_countries: row.production_countries
-// 			}
-// 		})
-// 	.then(response => {
-// 			allData = response;
-// 			downloadCSV();
-// }).catch(e => {
-//     console.log(e);
-// });
-
 let tryLoadingData = true;
 loadAndDisplayData(tryLoadingData);
 
 
 
 
-function loadAndDisplayData(tryLoadingData) {
+async function loadAndDisplayData(tryLoadingData) {
 d3.dsv("|", "allData.dsv", row => {
 			yearsList.add(+row.year);
 			 // console.log(row);
@@ -75,7 +49,7 @@ d3.dsv("|", "allData.dsv", row => {
 				overview: row.overview,
 				genres: JSON.parse(row.genres)
 			}})
-	.then(filteredMovies => {
+	.then(async function (filteredMovies) {
 			// console.log(filteredMovies);
 			allData = filteredMovies;
 
@@ -97,9 +71,10 @@ d3.dsv("|", "allData.dsv", row => {
 			console.log(allData);
 			drawScatterPlot(2017);
 
-			drawMap();
+			await drawMap(2017);
 			displayMovieInfo(862);
-			drawBarChart("RU");
+			//124 is Canada
+			drawBarChart(124, 2017);
 }).catch(e => {
     console.log(e);
     if (tryLoadingData) {
@@ -292,10 +267,17 @@ function drawScatterPlot (year) {
 } // DrawScatterPlot
 
 
-slider.on("input", () => {console.log(yearScale(+d3.event.target.value)); drawScatterPlot(yearScale(+d3.event.target.value))});
+slider.on("input", () => {
+	// console.log(yearScale(+d3.event.target.value));
+	drawScatterPlot(yearScale(+d3.event.target.value));
+	drawMap(yearScale(+d3.event.target.value));
+});
 
 
-async function drawMap() {
+async function drawMap(year) {
+	//already did thin in drawScatterPlot
+	yearData = allData.filter(d => d.year == year);
+
 	let mapData = await d3.json('mapData.json');
 	//File containing country codes, particularly letter and numeric versions
 	let countryCodes = await d3.json('countryCodes.json');
@@ -305,14 +287,12 @@ async function drawMap() {
 		codeLetterToNumeric.set(d["alpha-2"], d["country-code"]);
 		codeNumericToName.set(d["country-code"], d["name"]);
 	});
-	// console.log(codeLetterToNumeric);
-	// console.log(mapData);
 	var geoData = topojson.feature(mapData, mapData.objects.countries).features;
 	geoData.forEach(d => d.properties = {movies: []});
 	// console.log(geoData);
 
 	//Fill geoData with Movies data
-	allData.forEach(row => {
+	yearData.forEach(row => {
       var countries = geoData.filter(geoDataEntry => {
       	for (productionCountry of row.production_countries)
       		if (codeLetterToNumeric.get(productionCountry.iso_3166_1) === geoDataEntry.id)
@@ -322,7 +302,7 @@ async function drawMap() {
     });
     console.log(geoData);
 
-    yearData = allData.filter(d => d.year == year);
+    // yearData = allData.filter(d => d.year == year);
 
 
 	colorScale = d3.scaleLog()
@@ -331,25 +311,39 @@ async function drawMap() {
 					.range([d3.rgb("#66ff33"), d3.rgb("#cc0000")]);
 
     var projection = //d3.geoMercator()
-                       d3.geoNaturalEarth1().scale(120)
-                       .translate([svgWidth * 0.35, svgHeight * 0.4]);
+                       d3.geoNaturalEarth1().scale(170)
+                       .translate([svgWidth * 0.45, svgHeight * 0.5]);
 
     var path = d3.geoPath()
                  .projection(projection);
 
+	const worldMap = d3.select("#worldMap")
+					.attr("width", svgWidth)
+					.attr("height", svgHeight)
+					.selectAll(".country")
+					.data(geoData);
+
     worldMap
-      .selectAll(".country")
-      .data(geoData)
+    	// .selectAll(".country")
+    	// .data(geoData)
+    	.exit()
+    	.remove();
+
+	let tooltip = d3.select(".tooltip");
+    worldMap
+      // .selectAll(".country")
+      // .data(geoData)
       .enter()
         .append("path")
         .classed("country", true)
+      .merge(worldMap)
         .attr("d", path)
         .attr("fill", d => d.properties.movies.length ? colorScale(d.properties.movies.length) : "#DDDDDD");
 
 	//tooltips
-	let tooltip = d3.select(".tooltip");
-	worldMap
-		.selectAll("path")
+
+	d3.select("#worldMap")
+		.selectAll(".country")
 		.on("mousemove", d => {
 		tooltip
 			.style("opacity", 1)
@@ -358,8 +352,17 @@ async function drawMap() {
 			.style("top", d3.event.y - 35 + "px");
 		})
 		.on("mouseout", () => tooltip.style("opacity", 0))
-		.on("click", d => drawBarChart(d.id));
+		.on("click", d => drawBarChart(d.id, year));
 
+	// Plot label
+	worldMap
+		.append("text")
+		.text(`Number of movies per country`)
+		.attr("x", svgWidth / 2)
+		.attr("y", padding)
+		.attr("dy", "-1.5em")
+		.attr("font-size", "1.2em")
+		.attr("text-anchor", "middle");
 
 } //drawMap
 
@@ -376,10 +379,11 @@ function displayMovieInfo (id){
 		.html(htmlString);
 }//displayMovieInfo
 
-function drawBarChart(country) {
+function drawBarChart(country, year) {
 	console.log(country);
-	let countryData = allData.filter(movie => movie.production_countries.some(d => codeLetterToNumeric.get(d.iso_3166_1) === country));
-	console.log(countryData);
+	yearData = allData.filter(d => d.year == year);
+	let countryData = yearData.filter(movie => movie.production_countries.some(d => codeLetterToNumeric.get(d.iso_3166_1) === country));
+	// console.log(countryData);
 
 	//Count number or movies per genre for a given country
 	let genreData = new Map();
@@ -391,32 +395,48 @@ function drawBarChart(country) {
 	genreData = Array.from(genreData);
 	console.log(genreData);
 	let barPadding = 3;
-	let barWidth = svgWidth / genreData.length - barPadding;
-	let bar_height_per_occurence = 10;
+	let barWidth = Math.min(svgWidth / genreData.length - barPadding, svgWidth/10);
+	//make tallest bar equal svgHeight
+	let barHeightPerOccurence = svgHeight/d3.max(genreData, d => d[1]);
 
 
-	const barChart = d3.select("#barChart")
+	const bars = d3.select("#barChart")
 						.attr("width", svgWidth)
-						.attr("height", svgHeight);
+						.attr("height", svgHeight)
+						.selectAll(".bar")
+						.data(genreData, d => d[0]);
 
-	barChart
-		.selectAll(".bar")
+	const barLabels = d3.select("#barChart")
+						.selectAll(".barLabel")
+						.data(genreData, d => d[0]);
+
+	barLabels
+		.exit()
+		.remove();
+	bars
+		.exit()
 		.remove();
 
-	barChart
-		.selectAll(".bar")
-		.data(genreData, d => d[0])
+	bars
 		.enter()
 		.append("rect")
 		.classed("bar", true)
-		.merge(barChart)
+		.merge(bars)
 			.attr("x", (d, i) => (barWidth+barPadding)*i)
-			.attr("y", d => {
-				console.log(d);
-				return svgHeight - bar_height_per_occurence*d[1]})
-			.attr("height", d => bar_height_per_occurence*d[1])
+			.attr("y", d => svgHeight - barHeightPerOccurence*d[1])
+			.attr("height", d => barHeightPerOccurence*d[1])
 			.attr("width", barWidth);
 
+	barLabels
+		.enter()
+		.append("text")
+		.classed("barLabel", true)
+		.merge(barLabels)
+			.text(d => d[0])
+			.attr("x", (d, i) => (barWidth+barPadding)*i + barWidth/2)
+			.attr("y", d => svgHeight - barHeightPerOccurence*d[1])
+			.attr("dy", "1em")
+			.attr("text-anchor", "middle");
 
 
 
