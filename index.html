@@ -17,34 +17,48 @@
 
 </head>
 <body>
-
+	<div id="header">
+		<h1>Movie data visualization</h1>
+		<div id="slider"><input type="range" id="year" step="1"/>
+		<p id="sliderLabel">Year: 2017</p>
+	</div>
 	<div class="flex-container">
-		<svg
-			id="scatterPlot"
-			version="1.1"
-			baseProfile="full"
-			xmlns="http://www.w3.org/2000/svg" >
-		</svg>
-		<svg
-			id="worldMap"
-			version="1.1"
-			baseProfile="full"
-			xmlns="http://www.w3.org/2000/svg" >
-		</svg>
-		<svg
-			id="barChart"
-			version="1.1"
-			xmlns="http://www.w3.org/2000/svg" >
-		</svg>
+		<div class="plot">
+			<svg
+				id="scatterPlot"
+				version="1.1"
+				baseProfile="full"
+				xmlns="http://www.w3.org/2000/svg" >
+			</svg>
+			<label for="scaleGlobal">Scale scatter plot to data across all years</label>
+			<input type="checkbox" id="scaleGlobal"/>
+		</div>
+		<div class="plot">
+			<svg
+				id="worldMap"
+				version="1.1"
+				baseProfile="full"
+				xmlns="http://www.w3.org/2000/svg" >
+			</svg>
+		</div>
+		<div class="plot">
+			<svg
+				id="barChart"
+				version="1.1"
+				xmlns="http://www.w3.org/2000/svg" >
+			</svg>
+		</div>
+		<div id="movieInfo">
+			<strong>Click a circle on the scatter plot to see detailed description of the movie here</strong>
+		</div>
 	</div>
 
 
-		<div id="slider"><input type="range" id="year" step="1"/>
-		<input type="checkbox" id="scaleToCurrentYear" checked /></div>
+
 
 
 	<div class="tooltip"></div>
-	<div id="movieInfo"></div>
+
 
 <!-- <script src="https://d3js.org/d3.v4.min.js"></script>
 <script src="https://d3js.org/d3-dsv.v1.min.js"></script>

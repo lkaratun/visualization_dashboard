@@ -10,7 +10,7 @@ svg {
 
 .flex-container {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   justify-content: flex-start;
   flex-flow: row wrap;
   margin: 20px;
@@ -28,7 +28,7 @@ svg {
 	max-width: 168px;
 }
 
-.tooltip:after {
+/*.tooltip:after {
 	content: '  ';
 	position: absolute;
 	border: 12px solid transparent;
@@ -36,7 +36,7 @@ svg {
 	top: 52px;
 	left: 48%;
 	margin-left: -6px;
-}
+}*/
 
 #slider, svg  {
 	display: block;
@@ -44,8 +44,26 @@ svg {
 
 .barLabel {
 	fill: white;
+	transform: rotate(-90deg);
+	stroke:#000000;
+	stroke-width:1px
 }
 
-/*svg text {
-	text-transform: capitalize;
-}*/
+#movieInfo, .plot {
+	margin: 1%;
+	display: block;
+	box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.48);
+	padding: 1%;
+}
+
+#movieInfo {
+	max-width: 600px;
+	box-sizing: content-box;
+	width: 600px;
+	height: 400px;
+	overflow: auto;
+}
+
+#header {
+	text-align: center;
+}
