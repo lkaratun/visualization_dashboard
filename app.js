@@ -22,6 +22,7 @@ let yLabel = "Viewer rating";
 var allData;
 var yearScale;
 const imgBaseUrl = 'http://image.tmdb.org/t/p/w154/';
+const imgBaseUrlLarge = 'http://image.tmdb.org/t/p/w300/';
 var codeLetterToNumeric = new Map();
 var codeNumericToName = new Map();
 
@@ -215,7 +216,7 @@ function drawScatterPlot(year) {
 			.text(xLabel)
 			.attr("x", svgWidth / 2)
 			.attr("y", svgHeight - padding)
-			.attr("dy", "1.5em")
+			.attr("dy", "2em")
 			.attr("font-size", "1em")
 			.attr("text-anchor", "middle");
 
@@ -226,7 +227,7 @@ function drawScatterPlot(year) {
 			.attr("transform", "rotate(-90)")
 			.attr("x", -svgHeight / 2)
 			.attr("y", 0)
-			.attr("dy", "2em")
+			.attr("dy", "1.5em")
 			.attr("font-size", "1em")
 			.attr("text-anchor", "middle");
 
@@ -237,8 +238,8 @@ function drawScatterPlot(year) {
 			.attr("cx", d => d[xDataSelector] ? xScale(d[xDataSelector]) : padding)
 			.attr("cy", d => d[yDataSelector] ? yScale(d[yDataSelector]) : svgHeight - padding)
 		.merge(points)
-			.transition()
-			.duration(300)
+			// .transition()
+			// .duration(300)
 			// .delay((d, i) => i * 3)
 			.attr("cx", d => d[xDataSelector] ? xScale(d[xDataSelector]) : padding)
 			.attr("cy", d => d[yDataSelector] ? yScale(d[yDataSelector]) : svgHeight - padding)
@@ -385,9 +386,9 @@ function displayMovieInfo(id) {
 	let [movie] = allData.filter(d => d.id == id);
 	let budget = movie.budget >= 1e6 ? +(movie.budget/1e6).toFixed(2) + "M" : +(movie.budget/1e3).toFixed(2) + "K";
 	let htmlString = `
-	<h3>${movie.name} (${movie.year})</h3>
+	<img style="display: block; float:left; margin: 10px; height: 95%" src="${imgBaseUrlLarge + movie.poster_path}" alt="Image poster not found" />
+	<h3 style="text-align: center">${movie.name} (${movie.year})</h3>
 	<h4>Budget: ${budget}, runtime: ${movie.runtime}, rating: ${movie.vote_average}</h4>
-	<p><img style="display: block" src="${imgBaseUrl + movie.poster_path}" alt="Image poster not found" /></p>
 	<p>${movie.overview}</p>
 	`;
 	d3.select("#movieInfo")
