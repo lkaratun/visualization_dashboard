@@ -31,10 +31,12 @@ let genreNames = ["Animation", "Comedy", "Family", "Adventure",
 	"Crime", "Thriller",
 	"History", "Science Fiction", "Mystery", "Horror", "War", "Foreign", "Western", "Documentary", "Music", "TV Movie"
 ];
-let genreColors = ["rgba(0, 255, 255, 0.5)", "rgba(255, 212, 0, 0.4)", "hsla(20, 100%, 50%, 0.4)", "rgba(157, 0, 255, 0.7)",
-	"rgba(255, 0, 199, 0.61)", "rgba(106, 0, 255, 0.74)", "rgba(233, 0, 255, 0.5)", "rgba(0, 127, 255, 0.8)",
-	"rgba(0, 13, 204, 0.65)", "rgba(70, 42, 42, 0.9)"
-];
+// let genreColors = ["rgba(0, 255, 255, 0.5)", "rgba(255, 212, 0, 0.4)", "hsla(20, 100%, 50%, 0.4)", "rgba(157, 0, 255, 0.7)",
+// 	"rgba(255, 0, 199, 0.61)", "rgba(106, 0, 255, 0.74)", "rgba(233, 0, 255, 0.5)", "rgba(0, 127, 255, 0.8)",
+// 	"rgba(0, 13, 204, 0.65)", "rgba(70, 42, 42, 0.9)"
+// ];
+let genreColors = ["#5cbae6", "#b6d957", "#fac364", "#8cd3ff", "#d998cb", "#f2d249", "#93b9c6", "#ccc5a8", "#52bacc", "#dbdb46", "#98aafb"];
+
 let genreColorScale = d3.scaleOrdinal()
 	.domain(genreNames)
 	.range(genreColors);
@@ -99,20 +101,6 @@ async function loadAndDisplayData(tryLoadingData) {
 						if (row[xDataSelector] == 0 || row[yDataSelector] == 0 || row[rDataSelector] == 0 ||
 							row[cDataSelector] == 0 || row.release_date == 0 || !row.title) return;
 						yearsList.add(+row.release_date.slice(0, 4));
-						// if (row.id == 36614) //console.log(row.overview)
-						// console.log( {
-						// 	id: +row.id,
-						// 	name: row.title,
-						// 	year: +row.release_date.slice(0,4),
-						// 	budget: +row.budget,
-						// 	popularity: +row.popularity,
-						// 	runtime: +row.runtime,
-						// 	vote_average: +row.vote_average,
-						// 	poster_path: row.poster_path,
-						// 	production_countries: row.production_countries,
-						// 	overview: row.overview,
-						// 	genres: row.genres.replace(/'/g, '"')
-						// });
 
 						return {
 							id: +row.id,
@@ -213,7 +201,7 @@ function drawScatterPlot(year) {
 	// X axis
 	scatterPlot
 		.append("text")
-			.text(xLabel)
+			.text(xLabel + ". Circle size represents popularity")
 			.attr("x", svgWidth / 2)
 			.attr("y", svgHeight - padding)
 			.attr("dy", "2em")
@@ -244,7 +232,7 @@ function drawScatterPlot(year) {
 			.attr("cx", d => d[xDataSelector] ? xScale(d[xDataSelector]) : padding)
 			.attr("cy", d => d[yDataSelector] ? yScale(d[yDataSelector]) : svgHeight - padding)
 			// .attr("fill", d => d[cDataSelector] ? colorScale(d[cDataSelector]) : "#e1e1d0")
-			.attr("fill", "#333333")
+			.attr("fill", "#444444")
 			// .attr("r", 10)
 			.attr("r", d => d[rDataSelector] && d[yDataSelector] && d[xDataSelector] ? radiusScale(d[rDataSelector]) : 0);
 
@@ -306,7 +294,6 @@ async function drawMap(year) {
 	geoData.forEach(d => d.properties = {
 		movies: []
 	});
-	// console.log(geoData);
 
 	//Fill geoData with Movies data
 	yearData.forEach(row => {
@@ -317,12 +304,12 @@ async function drawMap(year) {
 		});
 		countries.forEach(country => country.properties.movies.push(row));
 	});
-	console.log(geoData);
 
-	colorScale = d3.scaleLog()
+	colorScale = d3.scaleLinear()
 		// Adding 1 for log scale to work correctly
-		.domain(d3.extent(geoData, d => d.properties.movies.length + 1))
-		.range([d3.rgb("#6da2ff"), d3.rgb("#ff6411")]);
+		.domain(d3.extent(geoData, d => d.properties.movies.length))
+		.range([colorbrewer.Blues[5][0], colorbrewer.Blues[5][4]]);
+
 
 	var projection = //d3.geoMercator()
 		d3.geoNaturalEarth1().scale(120)
@@ -338,15 +325,11 @@ async function drawMap(year) {
 		.data(geoData);
 
 	worldMap
-		// .selectAll(".country")
-		// .data(geoData)
 		.exit()
 		.remove();
 
-	let tooltip = d3.select(".tooltip");
+
 	worldMap
-		// .selectAll(".country")
-		// .data(geoData)
 		.enter()
 		.append("path")
 		.classed("country", true)
@@ -355,7 +338,7 @@ async function drawMap(year) {
 		.attr("fill", d => d.properties.movies.length ? colorScale(d.properties.movies.length) : "#DDDDDD");
 
 	//tooltips
-
+	let tooltip = d3.select(".tooltip");
 	d3.select("#worldMap")
 		.selectAll(".country")
 		.on("mousemove", d => {
@@ -378,17 +361,86 @@ async function drawMap(year) {
 		.attr("font-size", "1.2em")
 		.attr("text-anchor", "middle");
 
+	// Color legend (gradient)
+    let legendWidth = svgWidth*0.8;
+    let legendHeight = 50;
+
+    var legend = d3.select("#worldMap")
+      .append("defs")
+	      .attr("width", legendWidth)
+	      .attr("height", legendHeight)
+      .append("svg:linearGradient")
+	      .attr("id", "gradient")
+	      .attr("x1", "0%")
+	      .attr("y1", "100%")
+	      .attr("x2", "100%")
+	      .attr("y2", "100%")
+	      .attr("spreadMethod", "pad");
+
+    legend.append("stop")
+      .attr("offset", "0%")
+      .attr("stop-color", colorbrewer.Blues[5][1])
+      .attr("stop-opacity", 1);
+
+    legend.append("stop")
+      .attr("offset", "33%")
+      .attr("stop-color", colorbrewer.Blues[5][2])
+      .attr("stop-opacity", 1);
+
+    legend.append("stop")
+      .attr("offset", "66%")
+      .attr("stop-color", colorbrewer.Blues[5][3])
+      .attr("stop-opacity", 1);
+
+    legend.append("stop")
+      .attr("offset", "100%")
+      .attr("stop-color", colorbrewer.Blues[5][4])
+      .attr("stop-opacity", 1);
+
+    d3.select("#worldMap")
+      .append("rect")
+	      .attr("width", legendWidth)
+	      .attr("height", legendHeight - 30)
+	      .attr("x", `${svgWidth*0.1}px`)
+	      .attr("y", `${svgHeight*0.95}px`)
+	      .style("fill", "url(#gradient)");
+
+    var y = d3.scaleLinear()
+      .range([0, legendWidth])
+      .domain(d3.extent(geoData, d => d.properties.movies.length));
+
+    var yAxis = d3.axisBottom()
+      .scale(y)
+      .ticks(5);
+
+    d3.select("#worldMap")
+      .append("g")
+	      .attr("class", "y axis")
+	      .attr("transform", `translate(${svgWidth*0.1}, ${svgHeight*0.95})`)
+	      .call(yAxis)
+	      // .append("text")
+	      // .attr("transform", "rotate(-90)")
+	      // .attr("y", 0)
+	      // .attr("dy", ".71em")
+	      // .style("text-anchor", "end")
+	      // .text("axis title");
+
 
 } //drawMap
 
 function displayMovieInfo(id) {
 
 	let [movie] = allData.filter(d => d.id == id);
-	let budget = movie.budget >= 1e6 ? +(movie.budget/1e6).toFixed(2) + "M" : +(movie.budget/1e3).toFixed(2) + "K";
+	// let budget = movie.budget >= 1e6 ? +(movie.budget/1e6).toFixed(2) + "M" : +(movie.budget/1e3).toFixed(2) + "K";
+	let budget = movie.budget.toLocaleString("en-US", {style: "currency", currency: "USD"}).slice(0, -3);
+	let runTime = movie.runtime < 60 ? `${movie.runtime} min` :
+		 `${Math.floor(movie.runtime/60)} hr ${movie.runtime % 60} min`;
 	let htmlString = `
 	<img style="display: block; float:left; margin: 10px; height: 95%" src="${imgBaseUrlLarge + movie.poster_path}" alt="Image poster not found" />
 	<h3 style="text-align: center">${movie.name} (${movie.year})</h3>
-	<h4>Budget: ${budget}, runtime: ${movie.runtime}, rating: ${movie.vote_average}</h4>
+	<h6>Budget: ${budget}<br>
+	Runtime: ${runTime}<br>
+	Average rating: ${movie.vote_average}</h6>
 	<p>${movie.overview}</p>
 	`;
 	d3.select("#movieInfo")
@@ -396,14 +448,14 @@ function displayMovieInfo(id) {
 		.style("width", svgWidth + "px");
 } //displayMovieInfo
 
-function drawBarChart(country, year) {
-	console.log(country);
+function drawBarChart(countryId, year) {
+	console.log(countryId);
 	yearData = allData.filter(d => d.year == year);
 
-	let countryData = country !== undefined ? yearData.filter(movie => movie.production_countries.some(d => codeLetterToNumeric.get(d.iso_3166_1) === country)) : yearData;
+	let countryData = countryId !== undefined ? yearData.filter(movie => movie.production_countries.some(d => codeLetterToNumeric.get(d.iso_3166_1) === countryId)) : yearData;
 	// console.log(countryData);
 
-	//Count number of movies per genre for a given country
+	//Count number of movies per genre for a given countryId
 	let genreData = new Map();
 	countryData.forEach(movie => {
 		movie.genres.forEach(genre => {
@@ -462,7 +514,10 @@ function drawBarChart(country, year) {
 		.attr("y", d => yScale(d[1]) - paddingBottom)
 		.attr("height", d => svgHeight - yScale(d[1]))
 		.attr("width", barWidth)
-		.attr("fill", d => genreColorScale(d[0]));
+		// .attr("fill", d => genreColorScale(d[0]));
+		.attr("fill", "#4B80B7")
+		.attr("opacity", 0.5);
+
 
 	//Bar labels
 	barLabels
@@ -475,13 +530,19 @@ function drawBarChart(country, year) {
 		.attr("x", d => -svgHeight + paddingBottom * 2)
 		.attr("text-anchor", "start")
 		.attr("alignment-baseline", "middle")
-		.attr("font-size", "1.2em")
-		.attr("font-weight", "800");
+		.attr("font-size", "1em")
+		.attr("font-weight", "200");
 
 	// Plot label
+	// debugger;
+	let countryName = codeNumericToName.has(countryId) ? " filmed in " + codeNumericToName.get(countryId) : "";
+	d3.select("#barChart")
+		.selectAll(".plotLabel")
+		.remove();
 	d3.select("#barChart")
 		.append("text")
-		.text(`Number of movies per genre`)
+		.classed("plotLabel", true)
+		.text(`Number of movies${countryName} per genre`)
 		.attr("x", svgWidth / 2)
 		.attr("y", padding)
 		.attr("dy", "-0.75em")

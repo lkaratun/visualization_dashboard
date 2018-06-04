@@ -10,17 +10,20 @@
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
 	<script src="https://unpkg.com/topojson@3"></script>
+	<!-- ColorBrewer -->
+	<script src="colorBrewer.min.js"></script>
 
 
-	<title>Scatterplot revisited</title>
+
+	<title>Movie data visualization</title>
 	<link rel="stylesheet" href="style.css">
 
 </head>
 <body>
 	<div id="header">
 		<h1>Movie data visualization</h1>
-		<div id="slider"><input type="range" id="year" step="1"/>
-		<p id="sliderLabel">Year: 2017</p>
+		<div id="slider"><input type="range" id="year" step="1"/></div>
+		<h4 id="sliderLabel">Year: 2017</h4>
 	</div>
 	<div class="flex-container">
 		<div class="plot">
@@ -33,12 +36,15 @@
 			<div style="text-align: center"><label for="scaleGlobal">Scale scatter plot to data across all years</label>
 			<input type="checkbox" id="scaleGlobal"/></div>
 		</div>
+		<div id="movieInfo">
+			<h4 style="position:relative; top:40%; alignment-baseline:middle; text-align: center;">Click a circle on the scatter plot to see detailed description of the movie here</h4>
+		</div>
 		<div class="plot">
 			<svg
 				id="worldMap"
 				version="1.1"
 				baseProfile="full"
-				xmlns="http://www.w3.org/2000/svg" >
+				xmlns="http://www.w3.org/2000/svg"
 			</svg>
 		</div>
 		<div class="plot">
@@ -48,10 +54,9 @@
 				xmlns="http://www.w3.org/2000/svg" >
 			</svg>
 		</div>
-		<div id="movieInfo">
-			<strong>Click a circle on the scatter plot to see detailed description of the movie here</strong>
-		</div>
 	</div>
+
+	<div id="footer">Data source: <a href="https://www.themoviedb.org/">themoviedb.org</a></div>
 
 
 
@@ -67,6 +72,9 @@
 <script src="https://d3js.org/d3.v5.min.js"></script>
 <!-- BringToFront -->
 <script src="https://unpkg.com/d3-moveto"></script>
+<!-- d3 color legends -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.js"></script>
+
 <script src="app.js"></script>
 
 
