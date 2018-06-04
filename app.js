@@ -337,19 +337,22 @@ async function drawMap(year) {
 		.attr("d", path)
 		.attr("fill", d => d.properties.movies.length ? colorScale(d.properties.movies.length) : "#DDDDDD");
 
-	//tooltips
+	// Self-made tooltips
 	let tooltip = d3.select(".tooltip");
 	d3.select("#worldMap")
 		.selectAll(".country")
-		.on("mousemove", d => {
-			tooltip
-				.style("opacity", 1)
-				.text(codeNumericToName.get(d.id))
-				.style("left", d3.event.x - tooltip.node().offsetWidth / 2 + "px")
-				.style("top", d3.event.y - 35 + "px");
-		})
+		.on("mousemove", handleMouseOver)
 		.on("mouseout", () => tooltip.style("opacity", 0))
 		.on("click", d => drawBarChart(d.id, year));
+
+	function handleMouseOver(d) {
+		let coords = d3.mouse(this);
+		tooltip
+			.style("opacity", 1)
+			.text(codeNumericToName.get(d.id))
+			.style("left", coords[0] - tooltip.node().offsetWidth / 2 + document.getElementById("worldMap").getBoundingClientRect().x + "px")
+			.style("top", coords[1] - 35 + document.getElementById("worldMap").getBoundingClientRect().y + window.pageYOffset + "px");
+		}
 
 	// Plot label
 	d3.select("#worldMap")
@@ -431,13 +434,16 @@ async function drawMap(year) {
 function displayMovieInfo(id) {
 
 	let [movie] = allData.filter(d => d.id == id);
-	// let budget = movie.budget >= 1e6 ? +(movie.budget/1e6).toFixed(2) + "M" : +(movie.budget/1e3).toFixed(2) + "K";
 	let budget = movie.budget.toLocaleString("en-US", {style: "currency", currency: "USD"}).slice(0, -3);
 	let runTime = movie.runtime < 60 ? `${movie.runtime} min` :
 		 `${Math.floor(movie.runtime/60)} hr ${movie.runtime % 60} min`;
+	let countries = "";
+	movie.production_countries.forEach (country => {countries += country.name + ", ";})
+	// get rid or comma and space after the last country
+	countries = countries.slice(0, -2);
 	let htmlString = `
 	<img style="display: block; float:left; margin: 10px; height: 95%" src="${imgBaseUrlLarge + movie.poster_path}" alt="Image poster not found" />
-	<h3 style="text-align: center">${movie.name} (${movie.year})</h3>
+	<h3 style="text-align: center">${movie.name} (${countries})</h3>
 	<h6>Budget: ${budget}<br>
 	Runtime: ${runTime}<br>
 	Average rating: ${movie.vote_average}</h6>
@@ -464,9 +470,6 @@ function drawBarChart(countryId, year) {
 	});
 
 	let paddingBottom = 10;
-	// let xScale = d3.scaleLinear()
-	// 				.domain(Array.from(genreData.keys()))
-	// 				.range([padding, svgWidth - 2*padding]);
 	let yScale = d3.scaleLinear()
 		.domain([0, d3.max(Array.from(genreData.values()))])
 		.range([svgHeight, paddingBottom + padding]);
