@@ -83,7 +83,7 @@ window.onload =  async function() {
 	// When the slider value changes, update the input and span
 	range.noUiSlider.on('update', function (values, handle) {
 		// debugger;
-	    yearInputs[handle].value = values[handle];
+	    yearInputs[handle].value = Math.floor(values[handle]);
 	});
 
 

@@ -75,13 +75,16 @@
 }
 #range {
     width: 30vw;
-    margin: 0 auto 30px;
+    margin: 0 auto;
 }
-#value-span,
-#value-input {
-    width: 50%;
-    float: left;
-    display: block;
-    text-align: center;
-    margin: 0;
+
+#range > .noUi-pips-horizontal{
+	height: 0px;
+	margin: 0px;
+}
+
+#yearInput1, #yearInput2 {
+	max-width: 10ex;
+	text-align: center;
+	margin-top: 30px;
 }
