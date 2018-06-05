@@ -1,3 +1,4 @@
+var prevCountryId;
 var temp;
 var data, filename, link;
 const svgWidth = 600;
@@ -57,7 +58,7 @@ window.onload =  async function() {
 	let maxYear = d3.max(yearsList);
 
 	noUiSlider.create(range, {
-	    start: [minYear , maxYear], // Handle start position
+	    start: [1950 , 1970], // Handle start position
 	    step: 1, // Slider moves in increments of '10'
 	    connect: true, // Display a colored bar between the handles
 	    direction: 'ltr', // Put '0' at the bottom of the slider
@@ -77,15 +78,15 @@ window.onload =  async function() {
 		document.getElementById('yearInput1'),
 		document.getElementById('yearInput2')
 	];
-	// let yearInput1 = document.getElementById('yearInput1');
-	// let yearInput2 = document.getElementById('yearInput2');
 
 	// When the slider value changes, update the input and span
 	range.noUiSlider.on('update', function (values, handle) {
 		// debugger;
-	    yearInputs[handle].value = Math.floor(values[handle]);
+		yearInputs[handle].value = Math.floor(values[handle]);
+		drawScatterPlot([values[0], values[1]]);
+		drawMap([values[0], values[1]]);
+		drawBarChart(undefined, [values[0], values[1]]);
 	});
-
 
 	// When the input changes, set the slider value
 	yearInputs[0].addEventListener('change', function () {
@@ -137,11 +138,11 @@ async function loadAndDisplayData(tryLoadingData) {
 			// 	.attr("max", yearsList.length - 1)
 			// 	.attr("value", yearsList.length - 1);
 			console.log(allData);
-			drawScatterPlot(2017);
-			drawMap(2017);
+			drawScatterPlot([2017, 2017]);
+			drawMap([2017, 2017]);
 			// displayMovieInfo(862);
 			//124 is Canada
-			drawBarChart(undefined, 2017);
+			drawBarChart(undefined, [2017, 2017]);
 
 		}).catch(e => {
 			console.log(e);
@@ -185,8 +186,8 @@ async function loadAndDisplayData(tryLoadingData) {
 
 
 
-function drawScatterPlot(year) {
-	yearData = allData.filter(d => d.year == year);
+function drawScatterPlot(years) {
+	yearData = allData.filter(d => d.year >= years[0] && d.year <= years[1]);
 	// console.log(allData);
 	//Choose whether to use all data or current year's data for axes and grid scaling
 	let dataForScaling = d3.select("#scaleGlobal").property("checked") ? allData : yearData;
@@ -329,9 +330,9 @@ function drawScatterPlot(year) {
 // });
 
 
-async function drawMap(year) {
-	//already did thin in drawScatterPlot
-	yearData = allData.filter(d => d.year == year);
+async function drawMap(years) {
+	//already did this in drawScatterPlot
+	yearData = allData.filter(d => d.year >= years[0] && d.year <= years[1]);
 
 	let mapData = await d3.json('mapData.json');
 	//File containing country codes, particularly letter and numeric versions
@@ -395,7 +396,7 @@ async function drawMap(year) {
 		.selectAll(".country")
 		.on("mousemove", handleMouseOver)
 		.on("mouseout", () => tooltip.style("opacity", 0))
-		.on("click", d => drawBarChart(d.id, year));
+		.on("click", d => drawBarChart(d.id, years));
 
 	function handleMouseOver(d) {
 		let coords = d3.mouse(this);
@@ -513,9 +514,10 @@ function displayMovieInfo(id) {
 		.style("width", svgWidth + "px");
 } //displayMovieInfo
 
-function drawBarChart(countryId, year) {
-	console.log(countryId);
-	yearData = allData.filter(d => d.year == year);
+function drawBarChart(countryId, years) {
+	if (prevCountryId && !countryId) {countryId = prevCountryId;}
+	prevCountryId = countryId;
+	yearData = allData.filter(d => d.year >= years[0] && d.year <= years[1]);
 
 	let countryData = countryId !== undefined ? yearData.filter(movie => movie.production_countries.some(d => codeLetterToNumeric.get(d.iso_3166_1) === countryId)) : yearData;
 	// console.log(countryData);
