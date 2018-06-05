@@ -7,7 +7,11 @@ const scatterPlot = d3.select("#scatterPlot")
 	.attr("width", svgWidth)
 	.attr("height", svgHeight);
 
-const slider = d3.select("#year");
+// const slider = d3.select("#year");
+// const slider = document.getElementById('slider');
+
+
+
 
 var xData, yData, rData, cData, xScale, yScale, colorScale;
 var year = 1995;
@@ -41,13 +45,63 @@ let genreColorScale = d3.scaleOrdinal()
 	.domain(genreNames)
 	.range(genreColors);
 
-let tryLoadingData = true;
-loadAndDisplayData(tryLoadingData);
 
+
+window.onload =  async function() {
+	let tryLoadingData = true;
+	await loadAndDisplayData(tryLoadingData);
+
+	// Set up year slider
+	var range = document.getElementById('range');
+	let minYear = d3.min(yearsList);
+	let maxYear = d3.max(yearsList);
+
+	noUiSlider.create(range, {
+	    start: [minYear , maxYear], // Handle start position
+	    step: 1, // Slider moves in increments of '10'
+	    connect: true, // Display a colored bar between the handles
+	    direction: 'ltr', // Put '0' at the bottom of the slider
+	    orientation: 'horizontal', // Orient the slider vertically
+	    behaviour: 'tap-drag', // Move handle on tap, bar is draggable
+	    range: { // Slider can select '0' to '100'
+	        'min': minYear,
+	        'max': maxYear
+	    },
+	    pips: { // Show a scale with the slider
+	        mode: 'range',
+	        density: 10
+	    }
+	});
+
+	var yearInputs = [
+		document.getElementById('yearInput1'),
+		document.getElementById('yearInput2')
+	];
+	// let yearInput1 = document.getElementById('yearInput1');
+	// let yearInput2 = document.getElementById('yearInput2');
+
+	// When the slider value changes, update the input and span
+	range.noUiSlider.on('update', function (values, handle) {
+		// debugger;
+	    yearInputs[handle].value = values[handle];
+	});
+
+
+	// When the input changes, set the slider value
+	yearInputs[0].addEventListener('change', function () {
+		range.noUiSlider.set([this.value, null]);
+	});
+	yearInputs[1].addEventListener('change', function () {
+		range.noUiSlider.set([null, this.value]);
+	});
+
+
+
+} // window.onload
 
 
 async function loadAndDisplayData(tryLoadingData) {
-	d3.dsv("|", "allData.dsv", row => {
+	return d3.dsv("|", "allData.dsv", row => {
 			yearsList.add(+row.year);
 			// console.log(row);
 
@@ -66,13 +120,11 @@ async function loadAndDisplayData(tryLoadingData) {
 			}
 		})
 		.then(async function(filteredMovies) {
-			// console.log(filteredMovies);
 			allData = filteredMovies;
 
 			yearsList = Array.from(yearsList).sort((a, b) => a - b);
 			let movieCount = new Map();
 			allData.forEach(d => movieCount.set(d.year, (movieCount.get(d.year) + 1) || 1));
-			// console.log(movieCount);
 			//values of year slider
 
 			let indicesList = [];
@@ -80,10 +132,10 @@ async function loadAndDisplayData(tryLoadingData) {
 			yearScale = d3.scaleOrdinal()
 				.domain(indicesList)
 				.range(yearsList);
-			slider
-				.attr("min", 0)
-				.attr("max", yearsList.length - 1)
-				.attr("value", yearsList.length - 1);
+			// slider
+			// 	.attr("min", 0)
+			// 	.attr("max", yearsList.length - 1)
+			// 	.attr("value", yearsList.length - 1);
 			console.log(allData);
 			drawScatterPlot(2017);
 			drawMap(2017);
@@ -129,7 +181,7 @@ async function loadAndDisplayData(tryLoadingData) {
 			}
 		});
 
-}
+} // loadAndDisplayData
 
 
 
@@ -269,12 +321,12 @@ function drawScatterPlot(year) {
 } // DrawScatterPlot
 
 
-slider.on("input", () => {
-	// console.log(yearScale(+d3.event.target.value));
-	d3.select("#sliderLabel").text(`Year: ${yearScale(+d3.event.target.value)}`);
-	drawScatterPlot(yearScale(+d3.event.target.value));
-	drawMap(yearScale(+d3.event.target.value));
-});
+// slider.on("input", () => {
+// 	// console.log(yearScale(+d3.event.target.value));
+// 	d3.select("#sliderLabel").text(`Year: ${yearScale(+d3.event.target.value)}`);
+// 	drawScatterPlot(yearScale(+d3.event.target.value));
+// 	drawMap(yearScale(+d3.event.target.value));
+// });
 
 
 async function drawMap(year) {
@@ -438,13 +490,20 @@ function displayMovieInfo(id) {
 	let runTime = movie.runtime < 60 ? `${movie.runtime} min` :
 		 `${Math.floor(movie.runtime/60)} hr ${movie.runtime % 60} min`;
 	let countries = "";
-	movie.production_countries.forEach (country => {countries += country.name + ", ";})
+	movie.production_countries.forEach (country => {countries += country.name + ", ";});
+	if (movie.production_countries.length > 1) {
+		countries = "Production countries: " + countries;
+	} else {
+		countries = "Production country: " + countries;
+	}
 	// get rid or comma and space after the last country
 	countries = countries.slice(0, -2);
 	let htmlString = `
 	<img style="display: block; float:left; margin: 10px; height: 95%" src="${imgBaseUrlLarge + movie.poster_path}" alt="Image poster not found" />
-	<h3 style="text-align: center">${movie.name} (${countries})</h3>
-	<h6>Budget: ${budget}<br>
+	<h3 style="text-align: center">${movie.name}</h3>
+	<h6>Year: ${movie.year}<br>
+	${countries}<br>
+	Budget: ${budget}<br>
 	Runtime: ${runTime}<br>
 	Average rating: ${movie.vote_average}</h6>
 	<p>${movie.overview}</p>

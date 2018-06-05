@@ -6,7 +6,8 @@
   "dependencies": {
     "d3": "^5.4.0",
     "d3-tip": "^0.9.1",
-    "http-server": "^0.11.1"
+    "http-server": "^0.11.1",
+    "nouislider": "^11.1.0"
   },
   "devDependencies": {
     "webpack-cli": "^3.0.1"

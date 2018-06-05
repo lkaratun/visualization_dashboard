@@ -18,12 +18,16 @@
 	<title>Movie data visualization</title>
 	<link rel="stylesheet" href="style.css">
 
+	<link href="node_modules/nouislider/distribute/nouislider.min.css" rel="stylesheet">
+
 </head>
 <body>
 	<div id="header">
 		<h1>Movie data visualization</h1>
-		<div id="slider"><input type="range" id="year" step="1"/></div>
-		<h4 id="sliderLabel">Year: 2017</h4>
+		<div id="range">
+			<!-- <input type="range" id="year" step="1"/> -->
+		</div>
+		<h4 id="sliderLabel">Year: </h4> <input type="text" id="yearInput1"> <input type="text" id="yearInput2">
 	</div>
 	<div class="flex-container">
 		<div class="plot">
@@ -78,7 +82,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.js"></script>
 <!-- d3 tooltips -->
 <!-- <script src="node_modules/d3-tip/dist/index.js"></script> -->
-
+<!-- Double slider -->
+<script src="node_modules/nouislider/distribute/nouislider.min.js"></script>
 
 <script src="app.js"></script>
 
