@@ -8,10 +8,7 @@ const scatterPlot = d3.select("#scatterPlot")
 	.attr("width", svgWidth)
 	.attr("height", svgHeight);
 
-// const slider = d3.select("#year");
-// const slider = document.getElementById('slider');
-
-
+let sliderLow, sliderHigh;
 
 
 var xData, yData, rData, cData, xScale, yScale, colorScale;
@@ -82,18 +79,22 @@ window.onload =  async function() {
 	// When the slider value changes, update the input and span
 	range.noUiSlider.on('update', function (values, handle) {
 		// debugger;
+		sliderLow = values[0];
+		sliderHigh = values[1];
 		yearInputs[handle].value = Math.floor(values[handle]);
-		drawScatterPlot([values[0], values[1]]);
-		drawMap([values[0], values[1]]);
-		drawBarChart(undefined, [values[0], values[1]]);
+		drawScatterPlot([sliderLow, sliderHigh]);
+		drawMap([sliderLow, sliderHigh]);
+		drawBarChart(undefined, [sliderLow, sliderHigh]);
 	});
 
 	// When the input changes, set the slider value
 	yearInputs[0].addEventListener('change', function () {
 		range.noUiSlider.set([this.value, null]);
+		sliderLow = this.value;
 	});
 	yearInputs[1].addEventListener('change', function () {
 		range.noUiSlider.set([null, this.value]);
+		sliderHigh = this.value;
 	});
 
 
@@ -186,9 +187,12 @@ async function loadAndDisplayData(tryLoadingData) {
 
 
 
-function drawScatterPlot(years) {
+function drawScatterPlot(years, filteredCountries = undefined) {
 	yearData = allData.filter(d => d.year >= years[0] && d.year <= years[1]);
-	// console.log(allData);
+	// debugger;
+	if (filteredCountries) {yearData = yearData.filter(movie => filteredCountries.some(filteredCountry => movie.production_countries.some(productionCountry => codeLetterToNumeric.get(productionCountry.iso_3166_1) == filteredCountry)))
+		console.log(yearData);};
+
 	//Choose whether to use all data or current year's data for axes and grid scaling
 	let dataForScaling = d3.select("#scaleGlobal").property("checked") ? allData : yearData;
 
@@ -396,7 +400,10 @@ async function drawMap(years) {
 		.selectAll(".country")
 		.on("mousemove", handleMouseOver)
 		.on("mouseout", () => tooltip.style("opacity", 0))
-		.on("click", d => drawBarChart(d.id, years));
+		.on("click", d => {
+			drawBarChart(d.id, years);
+			drawScatterPlot(years, [d.id]);
+		});
 
 	function handleMouseOver(d) {
 		let coords = d3.mouse(this);
