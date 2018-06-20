@@ -4,16 +4,23 @@
   "description": "d3 movie data visualizations",
   "main": "app.js",
   "dependencies": {
-    "d3": "^5.4.0",
+    "d3": "^5.5.0",
     "d3-tip": "^0.9.1",
     "http-server": "^0.11.1",
     "nouislider": "^11.1.0"
   },
   "devDependencies": {
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-config-prettier": "^2.9.0",
+    "eslint-plugin-import": "^2.12.0",
+    "eslint-plugin-prettier": "^2.6.0",
+    "prettier": "^1.13.5",
+    "prettier-eslint": "^8.8.1",
     "webpack-cli": "^3.0.1"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint app"
   },
   "repository": {
     "type": "git",
@@ -28,5 +35,11 @@
   "bugs": {
     "url": "https://github.com/lkaratun/visualization_dashboard/issues"
   },
-  "homepage": "https://github.com/lkaratun/visualization_dashboard#readme"
+  "homepage": "https://github.com/lkaratun/visualization_dashboard#readme",
+  "eslintConfig": {
+    "globals": {
+      "window": true,
+      "d3": true
+    }
+  }
 }
