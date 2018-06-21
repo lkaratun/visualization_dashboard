@@ -124,14 +124,15 @@ window.onload = async function init() {
   });
 
   // When the input changes, set the slider value
-  yearInputs[0].addEventListener('change', () => {
+  yearInputs[0].addEventListener('change', function () {
     range.noUiSlider.set([this.value, null]);
     sliderLow = this.value;
   });
-  yearInputs[1].addEventListener('change', () => {
+  yearInputs[1].addEventListener('change', function () {
     range.noUiSlider.set([null, this.value]);
     sliderHigh = this.value;
   });
+
 }; // window.onload
 
 async function loadAndDisplayData() {
