@@ -15,7 +15,6 @@ let sliderHigh;
 // let xScale;
 // let yScale;
 let colorScale;
-const year = 1995;
 let yearData;
 let yearsList = new Set();
 const xDataSelector = 'budget';
@@ -29,6 +28,8 @@ const imgBaseUrl = 'http://image.tmdb.org/t/p/w154/';
 const imgBaseUrlLarge = 'http://image.tmdb.org/t/p/w300/';
 const codeLetterToNumeric = new Map();
 const codeNumericToName = new Map();
+let mapData;
+let countryCodes;
 
 // const genreNames = [
 //   'Animation',
@@ -78,6 +79,7 @@ const codeNumericToName = new Map();
 //   .range(genreColors);
 
 window.onload = async function init() {
+  [mapData, countryCodes] = await Promise.all([d3.json('mapData.json'), d3.json('countryCodes.json')]);
   await loadAndDisplayData();
 
   // Set up year slider
@@ -113,6 +115,8 @@ window.onload = async function init() {
   range.noUiSlider.on('update', (values, handle) => {
     // debugger;
     [sliderLow, sliderHigh] = values;
+    sliderLow = Math.round(sliderLow);
+    sliderHigh = Math.round(sliderHigh);
     yearInputs[handle].value = Math.floor(values[handle]);
     drawScatterPlot([sliderLow, sliderHigh]);
     drawMap([sliderLow, sliderHigh]);
@@ -134,7 +138,6 @@ async function loadAndDisplayData() {
   return d3
     .dsv('|', 'allData.dsv', (row) => {
       yearsList.add(+row.year);
-      // console.log(row);
 
       return {
         id: +row.id,
@@ -161,19 +164,9 @@ async function loadAndDisplayData() {
 
       const indicesList = [];
       yearsList.forEach((value, index) => indicesList.push(index));
-      // const yearScale = d3
-      //   .scaleOrdinal()
-      //   .domain(indicesList)
-      //   .range(yearsList);
-      // slider
-      //   .attr("min", 0)
-      //   .attr("max", yearsList.length - 1)
-      //   .attr("value", yearsList.length - 1);
-      console.log(allData);
+
       drawScatterPlot([2017, 2017]);
       drawMap([2017, 2017]);
-      // displayMovieInfo(862);
-      // 124 is Canada
       drawBarChart(undefined, [2017, 2017]);
     })
     .catch((e) => {
@@ -221,14 +214,12 @@ async function loadAndDisplayData() {
 
 function drawScatterPlot(years, filteredCountries = undefined) {
   yearData = allData.filter(d => d.year >= years[0] && d.year <= years[1]);
-  // debugger;
   if (filteredCountries) {
     yearData = yearData.filter(movie =>
       filteredCountries.some(filteredCountry =>
         movie.production_countries.some(productionCountry =>
           codeLetterToNumeric.get(productionCountry.iso_3166_1) ===
           filteredCountry, ), ), );
-    console.log(yearData);
   }
 
   // Choose whether to use all data or current year's data for axes and grid scaling
@@ -284,10 +275,14 @@ function drawScatterPlot(years, filteredCountries = undefined) {
 
   const points = scatterPlot.selectAll('circle').data(yearData); // , d => d.id);
 
+  const [startYear, endYear] = years;
+  const yearsText = startYear === endYear ? `${yLabel} vs ${xLabel} (${startYear})` : `${yLabel} vs ${xLabel} (${startYear} - ${endYear})`
+
   // Plot label
   scatterPlot
     .append('text')
-    .text(`${yLabel} vs ${xLabel} (${year})`)
+    .classed('plotLabel', true)
+    .text(yearsText)
     .attr('x', svgWidth / 2)
     .attr('y', padding)
     .attr('dy', '-0.75em')
@@ -371,13 +366,12 @@ function drawScatterPlot(years, filteredCountries = undefined) {
 
   // Show movie info on circle click
   scatterPlot.selectAll('circle').on('click', (d) => {
-    console.log(d);
     displayMovieInfo(d.id);
   });
 } // DrawScatterPlot
 
 // slider.on("input", () => {
-//   // console.log(yearScale(+d3.event.target.value));
+//   // //console.log(yearScale(+d3.event.target.value));
 //   d3.select("#sliderLabel").text(`Year: ${yearScale(+d3.event.target.value)}`);
 //   drawScatterPlot(yearScale(+d3.event.target.value));
 //   drawMap(yearScale(+d3.event.target.value));
@@ -387,10 +381,11 @@ async function drawMap(years) {
   // already did this in drawScatterPlot
   yearData = allData.filter(d => d.year >= years[0] && d.year <= years[1]);
 
-  const mapData = await d3.json('mapData.json');
-  // File containing country codes, particularly letter and numeric versions
-  const countryCodes = await d3.json('countryCodes.json');
-  // Hashmap to convert letter country code to numeric
+  // const mapData = await d3.json('mapData.json');
+  // // File containing country codes, particularly letter and numeric versions
+  // const countryCodes = await d3.json('countryCodes.json');
+  // // Hashmap to convert letter country code to numeric
+  // const [mapData, countryCodes] = await Promise.all([d3.json('mapData.json'), d3.json('countryCodes.json')]);
 
   countryCodes.forEach((d) => {
     codeLetterToNumeric.set(d['alpha-2'], d['country-code']);
@@ -404,19 +399,10 @@ async function drawMap(years) {
   });
 
   // Fill geoData with Movies data
-  yearData.forEach((row) => {
-    const countries = geoData.filter((geoDataEntry) => {
-      row.production_countries.forEach(productionCountry => {
-        if (
-          codeLetterToNumeric.get(productionCountry.iso_3166_1) ===
-          geoDataEntry.id
-        ) {
-          return true;
-        }
-        return false;
-      });
-      return false;
-    });
+  yearData.forEach(row => {
+    const countries = geoData.filter(geoDataEntry =>
+      row.production_countries.some(productionCountry =>
+        codeLetterToNumeric.get(productionCountry.iso_3166_1) === geoDataEntry.id));
     countries.forEach(country => country.properties.movies.push(row));
   });
 
@@ -617,7 +603,6 @@ function drawBarChart(countryId = prevCountryId, years) {
       ? yearData.filter(movie =>
         movie.production_countries.some(d => codeLetterToNumeric.get(d.iso_3166_1) === countryId, ), )
       : yearData;
-  // console.log(countryData);
 
   // Count number of movies per genre for a given countryId
   let genreData = new Map();
@@ -639,7 +624,6 @@ function drawBarChart(countryId = prevCountryId, years) {
   // .tickSizeOuter(0);
 
   genreData = Array.from(genreData).sort((a, b) => b[1] - a[1]);
-  console.log(genreData);
   const barPadding = 3;
   const barWidth = Math.min(
     (svgWidth - padding * 2) / genreData.length - barPadding,
@@ -722,7 +706,6 @@ function drawBarChart(countryId = prevCountryId, years) {
 } // drawBarChart
 
 function convertArrayOfObjectsToCSV(args) {
-  console.log('Entered convertArrayOfObjectsToCSV');
   let result
   let ctr
 
@@ -758,7 +741,6 @@ function convertArrayOfObjectsToCSV(args) {
 }
 
 function downloadCSV() {
-  console.log('Entered downloadCSV');
   // let data;
   const csv = convertArrayOfObjectsToCSV({
     data: allData,
