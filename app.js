@@ -1,4 +1,4 @@
-let prevCountryId;
+// let prevCountryId;
 let yearsCountriesData;
 // let filename;
 // let link;
@@ -121,7 +121,7 @@ window.onload = async function init() {
     sliderHigh = Math.round(sliderHigh);
     yearInputs[handle].value = Math.floor(values[handle]);
     yearsChosen = [sliderLow, sliderHigh];
-    refreshPlots();
+    refreshPlots(yearsChosen, countriesChosen);
   });
 
   // When the input changes, set the slider value
@@ -213,7 +213,7 @@ async function loadAndDisplayData() {
 } // loadAndDisplayData
 
 function refreshPlots(years = [], countries = []) {
-  yearData = allData.filter(d => d.year >= yearsChosen[0] && d.year <= yearsChosen[1]);
+  yearData = allData.filter(d => d.year >= years[0] && d.year <= years[1]);
   if (countries.length) {
     yearsCountriesData = yearData.filter(movie =>
       countries.some(filteredCountry =>
@@ -225,13 +225,12 @@ function refreshPlots(years = [], countries = []) {
     yearsCountriesData = yearData;
   }
 
-
-  drawScatterPlot(years, countries);
-  drawMap(years, countries);
-  drawBarChart(years, countries);
+  drawScatterPlot(countries);
+  drawMap(countries);
+  drawBarChart(countries);
 }
 
-function drawScatterPlot(years = [], countries = []) {
+function drawScatterPlot() {
   // Choose whether to use all data or current year's data for axes and grid scaling
   const dataForScaling = d3.select('#scaleGlobal').property('checked')
     ? allData
@@ -285,7 +284,7 @@ function drawScatterPlot(years = [], countries = []) {
 
   const points = scatterPlot.selectAll('circle').data(yearsCountriesData); // , d => d.id);
 
-  const [startYear, endYear] = years;
+  const [startYear, endYear] = yearsChosen;
   const yearsText = startYear === endYear ? `${yLabel} vs ${xLabel} (${startYear})` : `${yLabel} vs ${xLabel} (${startYear} - ${endYear})`;
 
   // Plot label
@@ -380,7 +379,7 @@ function drawScatterPlot(years = [], countries = []) {
   });
 } // DrawScatterPlot
 
-async function drawMap(years = [], countries = []) {
+async function drawMap() {
 
   // const mapData = await d3.json('mapData.json');
   // // File containing country codes, particularly letter and numeric versions
@@ -557,7 +556,7 @@ async function drawMap(years = [], countries = []) {
   // .text("axis title");
 } // drawMap
 
-function drawBarChart(years = [], countries = []) {
+function drawBarChart() {
   // Count number of movies per genre for a given countryId
   let genreData = new Map();
   yearsCountriesData.forEach((movie) => {
@@ -634,17 +633,16 @@ function drawBarChart(years = [], countries = []) {
     .attr('font-weight', '200');
 
   // Plot label
-  // debugger;
-  const countryName = codeNumericToName.has(countries)
-    ? ` filmed in ${codeNumericToName.get(countries)}`
-    : '';
+  // const countryName = codeNumericToName.has(countries)
+  //   ? ` filmed in ${codeNumericToName.get(countries)}`
+  //   : '';
   d3.select('#barChart')
     .selectAll('.plotLabel')
     .remove();
   d3.select('#barChart')
     .append('text')
     .classed('plotLabel', true)
-    .text(`Number of movies${countryName} per genre`)
+    .text(`Number of movies per genre`)
     .attr('x', svgWidth / 2)
     .attr('y', padding)
     .attr('dy', '-0.75em')
