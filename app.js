@@ -1,4 +1,5 @@
 let prevCountryId;
+let yearsCountriesData;
 // let filename;
 // let link;
 const svgWidth = 600;
@@ -11,9 +12,10 @@ const scatterPlot = d3
 
 let sliderLow;
 let sliderHigh;
+let yearsChosen = [2017, 2017];
+let countriesChosen = [];
 
-// let xScale;
-// let yScale;
+
 let colorScale;
 let yearData;
 let yearsList = new Set();
@@ -118,9 +120,8 @@ window.onload = async function init() {
     sliderLow = Math.round(sliderLow);
     sliderHigh = Math.round(sliderHigh);
     yearInputs[handle].value = Math.floor(values[handle]);
-    drawScatterPlot([sliderLow, sliderHigh]);
-    drawMap([sliderLow, sliderHigh]);
-    drawBarChart(undefined, [sliderLow, sliderHigh]);
+    yearsChosen = [sliderLow, sliderHigh];
+    refreshPlots();
   });
 
   // When the input changes, set the slider value
@@ -166,9 +167,8 @@ async function loadAndDisplayData() {
       const indicesList = [];
       yearsList.forEach((value, index) => indicesList.push(index));
 
-      drawScatterPlot([2017, 2017]);
-      drawMap([2017, 2017]);
-      drawBarChart(undefined, [2017, 2017]);
+
+      refreshPlots(yearsChosen, countriesChosen);
     })
     .catch((e) => {
       console.log(e);
@@ -204,7 +204,6 @@ async function loadAndDisplayData() {
         .then((response) => {
           allData = response;
           downloadCSV();
-          // loadAndDisplayData(tryLoadingData);
         })
         .catch((e2) => {
           console.log(e2);
@@ -213,20 +212,30 @@ async function loadAndDisplayData() {
     );
 } // loadAndDisplayData
 
-function drawScatterPlot(years, filteredCountries = undefined) {
-  yearData = allData.filter(d => d.year >= years[0] && d.year <= years[1]);
-  if (filteredCountries) {
-    yearData = yearData.filter(movie =>
-      filteredCountries.some(filteredCountry =>
+function refreshPlots(years = [], countries = []) {
+  yearData = allData.filter(d => d.year >= yearsChosen[0] && d.year <= yearsChosen[1]);
+  if (countries.length) {
+    yearsCountriesData = yearData.filter(movie =>
+      countries.some(filteredCountry =>
         movie.production_countries.some(productionCountry =>
           codeLetterToNumeric.get(productionCountry.iso_3166_1) ===
-          filteredCountry, ), ), );
+          filteredCountry)));
+  }
+  else {
+    yearsCountriesData = yearData;
   }
 
+
+  drawScatterPlot(years, countries);
+  drawMap(years, countries);
+  drawBarChart(years, countries);
+}
+
+function drawScatterPlot(years = [], countries = []) {
   // Choose whether to use all data or current year's data for axes and grid scaling
   const dataForScaling = d3.select('#scaleGlobal').property('checked')
     ? allData
-    : yearData;
+    : yearsCountriesData;
 
   const xScale = d3
     .scaleLinear()
@@ -247,11 +256,11 @@ function drawScatterPlot(years, filteredCountries = undefined) {
     .tickSizeOuter(0);
   colorScale = d3
     .scaleLinear()
-    .domain(d3.extent(yearData, d => d[cDataSelector]))
+    .domain(d3.extent(yearsCountriesData, d => d[cDataSelector]))
     .range([d3.rgb('#66ff33'), d3.rgb('#cc0000')]);
   const radiusScale = d3
     .scaleLinear()
-    .domain(d3.extent(yearData, d => d[rDataSelector]))
+    .domain(d3.extent(yearsCountriesData, d => d[rDataSelector]))
     .range([3, 12]);
 
   scatterPlot.selectAll('g').remove();
@@ -260,7 +269,7 @@ function drawScatterPlot(years, filteredCountries = undefined) {
 
   scatterPlot
     .selectAll('circle')
-    .data(yearData) // , d => d.id)
+    .data(yearsCountriesData) // , d => d.id)
     .exit()
     .remove();
 
@@ -274,10 +283,10 @@ function drawScatterPlot(years, filteredCountries = undefined) {
     .call(yAxis)
     .attr('transform', `translate (${padding}, 0)`);
 
-  const points = scatterPlot.selectAll('circle').data(yearData); // , d => d.id);
+  const points = scatterPlot.selectAll('circle').data(yearsCountriesData); // , d => d.id);
 
   const [startYear, endYear] = years;
-  const yearsText = startYear === endYear ? `${yLabel} vs ${xLabel} (${startYear})` : `${yLabel} vs ${xLabel} (${startYear} - ${endYear})`
+  const yearsText = startYear === endYear ? `${yLabel} vs ${xLabel} (${startYear})` : `${yLabel} vs ${xLabel} (${startYear} - ${endYear})`;
 
   // Plot label
   scatterPlot
@@ -371,16 +380,7 @@ function drawScatterPlot(years, filteredCountries = undefined) {
   });
 } // DrawScatterPlot
 
-// slider.on("input", () => {
-//   // //console.log(yearScale(+d3.event.target.value));
-//   d3.select("#sliderLabel").text(`Year: ${yearScale(+d3.event.target.value)}`);
-//   drawScatterPlot(yearScale(+d3.event.target.value));
-//   drawMap(yearScale(+d3.event.target.value));
-// });
-
-async function drawMap(years) {
-  // already did this in drawScatterPlot
-  yearData = allData.filter(d => d.year >= years[0] && d.year <= years[1]);
+async function drawMap(years = [], countries = []) {
 
   // const mapData = await d3.json('mapData.json');
   // // File containing country codes, particularly letter and numeric versions
@@ -396,7 +396,7 @@ async function drawMap(years) {
   geoData.forEach(d => {
     d.properties = {
       movies: [],
-    }
+    };
   });
 
   // Fill geoData with Movies data
@@ -443,15 +443,16 @@ async function drawMap(years) {
           : "#DDDDDD"),
   );
 
-  // Self-made tooltips
+  // Tooltips and click actions
   const tooltip = d3.select('.tooltip');
   d3.select('#worldMap')
     .selectAll('.country')
     .on('mousemove', handleMouseOver)
     .on('mouseout', () => tooltip.style('opacity', 0))
     .on('click', (d) => {
-      drawBarChart(d.id, years);
-      drawScatterPlot(years, [d.id]);
+      if (d3.event.shiftKey) { countriesChosen.push(d.id); }
+      else { countriesChosen = [d.id]; }
+      refreshPlots(yearsChosen, countriesChosen);
     });
 
   function handleMouseOver(d) {
@@ -556,58 +557,10 @@ async function drawMap(years) {
   // .text("axis title");
 } // drawMap
 
-function displayMovieInfo(id) {
-  const [movie] = allData.filter(d => d.id === id);
-  const budget = movie.budget
-    .toLocaleString('en-US', { style: 'currency', currency: 'USD' })
-    .slice(0, -3);
-  const runTime =
-    movie.runtime < 60
-      ? `${movie.runtime} min`
-      : `${Math.floor(movie.runtime / 60)} hr ${movie.runtime % 60} min`;
-  let countries = '';
-  movie.production_countries.forEach((country) => {
-    countries += `${country.name}, `;
-  });
-  if (movie.production_countries.length > 1) {
-    countries = `Production countries: ${countries}`;
-  } else {
-    countries = `Production country: ${countries}`;
-  }
-  // get rid or comma and space after the last country
-  countries = countries.slice(0, -2);
-  const htmlString = `
-  <img style="display: block; float:left; margin: 10px; height: 95%" src="${imgBaseUrlLarge +
-    movie.poster_path}" alt="Image poster not found" />
-  <h3 style="text-align: center">${movie.name}</h3>
-  <h6>Year: ${movie.year}<br>
-  ${countries}<br>
-  Budget: ${budget}<br>
-  Runtime: ${runTime}<br>
-  Average rating: ${movie.vote_average}</h6>
-  <p>${movie.overview}</p>
-  `;
-  d3.select('#movieInfo')
-    .html(htmlString)
-    .style('width', `${svgWidth}px`);
-} // displayMovieInfo
-
-function drawBarChart(countryId = prevCountryId, years) {
-  // if (prevCountryId && !countryId) {
-  //   countryId = prevCountryId;
-  // }
-  prevCountryId = countryId;
-  yearData = allData.filter(d => d.year >= years[0] && d.year <= years[1]);
-
-  const countryData =
-    countryId !== undefined
-      ? yearData.filter(movie =>
-        movie.production_countries.some(d => codeLetterToNumeric.get(d.iso_3166_1) === countryId, ), )
-      : yearData;
-
+function drawBarChart(years = [], countries = []) {
   // Count number of movies per genre for a given countryId
   let genreData = new Map();
-  countryData.forEach((movie) => {
+  yearsCountriesData.forEach((movie) => {
     movie.genres.forEach((genre) => {
       genreData.set(genre.name, genreData.get(genre.name) + 1 || 1);
     });
@@ -682,8 +635,8 @@ function drawBarChart(countryId = prevCountryId, years) {
 
   // Plot label
   // debugger;
-  const countryName = codeNumericToName.has(countryId)
-    ? ` filmed in ${codeNumericToName.get(countryId)}`
+  const countryName = codeNumericToName.has(countries)
+    ? ` filmed in ${codeNumericToName.get(countries)}`
     : '';
   d3.select('#barChart')
     .selectAll('.plotLabel')
@@ -706,9 +659,45 @@ function drawBarChart(countryId = prevCountryId, years) {
     .attr('transform', `translate (${padding}, ${-paddingBottom})`);
 } // drawBarChart
 
+function displayMovieInfo(id) {
+  const [movie] = allData.filter(d => d.id === id);
+  const budget = movie.budget
+    .toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+    .slice(0, -3);
+  const runTime =
+    movie.runtime < 60
+      ? `${movie.runtime} min`
+      : `${Math.floor(movie.runtime / 60)} hr ${movie.runtime % 60} min`;
+  let countries = '';
+  movie.production_countries.forEach((country) => {
+    countries += `${country.name}, `;
+  });
+  if (movie.production_countries.length > 1) {
+    countries = `Production countries: ${countries}`;
+  } else {
+    countries = `Production country: ${countries}`;
+  }
+  // get rid or comma and space after the last country
+  countries = countries.slice(0, -2);
+  const htmlString = `
+  <img style="display: block; float:left; margin: 10px; height: 95%" src="${imgBaseUrlLarge +
+    movie.poster_path}" alt="Image poster not found" />
+  <h3 style="text-align: center">${movie.name}</h3>
+  <h6>Year: ${movie.year}<br>
+  ${countries}<br>
+  Budget: ${budget}<br>
+  Runtime: ${runTime}<br>
+  Average rating: ${movie.vote_average}</h6>
+  <p>${movie.overview}</p>
+  `;
+  d3.select('#movieInfo')
+    .html(htmlString)
+    .style('width', `${svgWidth}px`);
+} // displayMovieInfo
+
 function convertArrayOfObjectsToCSV(args) {
-  let result
-  let ctr
+  let result;
+  let ctr;
 
   const data = args.data || null;
   if (data == null || !data.length) {
