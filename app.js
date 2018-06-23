@@ -115,12 +115,14 @@ window.onload = async function init() {
 
   // When the slider value changes, update the input and span
   range.noUiSlider.on('update', (values, handle) => {
-    // debugger;
     [sliderLow, sliderHigh] = values;
     sliderLow = Math.round(sliderLow);
     sliderHigh = Math.round(sliderHigh);
     yearInputs[handle].value = Math.floor(values[handle]);
-    yearsChosen = [sliderLow, sliderHigh];
+  });
+
+  range.noUiSlider.on('set', (values) => {
+    yearsChosen = values;
     refreshPlots(yearsChosen, countriesChosen);
   });
 

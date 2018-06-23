@@ -22,7 +22,13 @@
       {
         "props": false
       }
-    ]
+    ],
+    "func-names": [
+      "off",
+      "as-needed"
+    ],
+    "semi": "error",
+    "linebreak-style": "off"
   },
   "plugins": [
     "prettier"
