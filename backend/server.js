@@ -16,209 +16,116 @@ const express = require("express");
 
 const app = express();
 const router = express.Router();
+app.use("", router);
+app.listen(3000, () => console.log("App is running on port 3000"));
 
-let Movie;
-const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'connection error: '));
-// db.once("open", () => console.log(db));
-// console.log(db);
-// console.log(db);
-// app.get("/", (req, res) => {
-//   const movies =
-//     res.json({ message: "Hello from express!" });
-// });
-
-
-router.get("/", async (req, res) => {
-
-  // db.once('open', async () => {
+router.get("/populate", async (req, res) => {
   try {
-    const movies = await Movie.find();
+    await fileToDb("allData.dsv");
+    const movies = await listMovies();
+    // console.log(movies);
     res.json(movies);
   }
   catch (e) { console.log(e); }
-  // console.log(Movie);
-  // });
 });
 
+router.get("/", async (req, res) => {
+  try {
+    const movies = await listMovies();
+    // console.log(movies);
+    res.json(movies);
+  }
+  catch (e) { console.log(e); }
+});
 
+const Movie = init();
 
+function listMovies() {
+  return Movie.find().limit(20);
+}
 
-
-app.use("", router);
-
-
-app.listen(3000, () => console.log("App is running on port 3000"));
-
-
-
-// init();
-queryDB();
-// module.exports = mongoose.model("Movie", movieSchema);
-function queryDB() {
-
+function init() {
   mongoose.connect('mongodb://localhost/moviesDB');
   mongoose.Promise = global.Promise;
+  const db = mongoose.connection;
+  db.on('error', console.error.bind(console, 'connection error: '));
   // const countrySchema = new mongoose.Schema({
   //   letterCode: String,
   //   name: String
   // });
-
-  db.once('open', () => {
-    const movieSchema = new mongoose.Schema({
-      id: Number,
-      name: String,
-      year: Number,
-      budget: Number,
-      popularity: Number,
-      runtime: Number,
-      vote_average: Number,
-      poster_path: String,
-      production_countries: [{ letter_code: String, name: String }],
-      overview: String,
-      genres: [String]
-    }, { collection: 'movies' });
-
-    Movie = mongoose.model("movie", movieSchema, "movies");
-    // console.log('Movie.find(): ', Movie.find().exec((err, result) => { console.log(result); }));
-    console.log('Movie.find(): ', Movie.find((err, result) => console.log(result)));
-  });
+  const movieSchema = new mongoose.Schema({
+    id: Number,
+    name: String,
+    year: Number,
+    budget: Number,
+    popularity: Number,
+    runtime: Number,
+    vote_average: Number,
+    poster_path: String,
+    production_countries: [{ letter_code: String, name: String }],
+    overview: String,
+    genres: [String]
+  }, { collection: 'movies' });
+  return mongoose.model("movie", movieSchema, "movies");
 }
-
-
-
-
 
 function populateDB(data) {
-
-  mongoose.connect('mongodb://localhost/moviesDB');
   // const countrySchema = new mongoose.Schema({
   //   letterCode: String,
   //   name: String
   // });
 
-  db.once('open', () => {
-    const movieSchema = new mongoose.Schema({
-      id: Number,
-      name: String,
-      year: Number,
-      budget: Number,
-      popularity: Number,
-      runtime: Number,
-      vote_average: Number,
-      poster_path: String,
-      production_countries: [{ letter_code: String, name: String }],
-      overview: String,
-      genres: [String]
-    }, { collection: 'movies' });
+  // const movieSchema = new mongoose.Schema({
+  //   id: Number,
+  //   name: String,
+  //   year: Number,
+  //   budget: Number,
+  //   popularity: Number,
+  //   runtime: Number,
+  //   vote_average: Number,
+  //   poster_path: String,
+  //   production_countries: [{ letter_code: String, name: String }],
+  //   overview: String,
+  //   genres: [String]
+  // }, { collection: 'movies' });
 
-    // const yearSchema = new mongoose.Schema({
-    //   value: Number,
-    //   movies: [movieSchema]
-    // }, { collection: 'years' });
+  // // const yearSchema = new mongoose.Schema({
+  // //   value: Number,
+  // //   movies: [movieSchema]
+  // // }, { collection: 'years' });
 
-    // const Year = mongoose.model("year", yearSchema, "years");
-    Movie = mongoose.model("movie", movieSchema, "movies");
+  // // const Year = mongoose.model("year", yearSchema, "years");
+  // Movie = mongoose.model("movie", movieSchema, "movies");
 
-    data.forEach(row => {
-      const genres = JSON.parse(row.genres).map(entry => entry.name);
-      const movie = new Movie({
-        id: +row.id,
-        name: row.name,
-        year: +row.year,
-        budget: +row.budget,
-        popularity: +row.popularity,
-        runtime: +row.runtime,
-        vote_average: +row.vote_average,
-        poster_path: row.poster_path,
-        production_countries: JSON.parse(row.production_countries.replace(/'/g, '"')),
-        overview: row.overview,
-        genres
-      });
-
-      movie.save((err) => { if (err) { console.log(err); } });
+  data.forEach(row => {
+    const genres = JSON.parse(row.genres).map(entry => entry.name);
+    const movie = new Movie({
+      id: +row.id,
+      name: row.name,
+      year: +row.year,
+      budget: +row.budget,
+      popularity: +row.popularity,
+      runtime: +row.runtime,
+      vote_average: +row.vote_average,
+      poster_path: row.poster_path,
+      production_countries: JSON.parse(row.production_countries.replace(/'/g, '"')),
+      overview: row.overview,
+      genres
     });
+
+    movie.save((err) => { if (err) { console.log(err); } });
   });
-
-
 }
 
-
-
-async function init() {
+function fileToDb(filename) {
   // [mapData, countryCodes] = await Promise.all([d3.json('mapData.json'), d3.json('countryCodes.json')]);
   csvtojson({ delimiter: "|" })
-    .fromFile("allDataSm.dsv")
-
-
-    // , (row) => {
-    //   yearsList.add(+row.year);
-
-    //   return {
-    //     id: +row.id,
-    //     name: row.name,
-    //     year: +row.year,
-    //     budget: +row.budget,
-    //     popularity: +row.popularity,
-    //     runtime: +row.runtime,
-    //     vote_average: +row.vote_average,
-    //     poster_path: row.poster_path,
-    //     production_countries: JSON.parse(row.production_countries.replace(/'/g, '"')),
-    //     overview: row.overview,
-    //     genres: JSON.parse(row.genres),
-    //   };
-    // })
+    .fromFile(filename)
     .then(async (filteredMovies) => {
-      // allData = filteredMovies;
-      // console.log(filteredMovies);
       populateDB(filteredMovies);
-
-      // const movieCount = new Map();
-      // allData.forEach(d =>
-      //   movieCount.set(d.year, movieCount.get(d.year) + 1 || 1));
-      // // values of year slider
-
-      // const indicesList = [];
-      // yearsList.forEach((value, index) => indicesList.push(index));
     })
     .catch((e) => {
       console.log(e);
-      // Retrieve all data from movies_metadata.csv and store it in allData array. Store selected year's data in yearData array
-      // d3.csv('movies_metadata.csv', (row) => {
-      //   // Only keep rows with all keys having valid values
-      //   if (
-      //     !row[xDataSelector] ||
-      //     !row[yDataSelector] ||
-      //     !row[rDataSelector] ||
-      //     !row[cDataSelector] ||
-      //     !row.release_date ||
-      //     !row.title
-      //   ) {
-      //     return false;
-      //   }
-      //   yearsList.add(+row.release_date.slice(0, 4));
-
-      //   return {
-      //     id: +row.id,
-      //     name: row.title,
-      //     year: +row.release_date.slice(0, 4),
-      //     budget: +row.budget,
-      //     popularity: +row.popularity,
-      //     runtime: +row.runtime,
-      //     vote_average: +row.vote_average,
-      //     poster_path: row.poster_path,
-      //     production_countries: row.production_countries,
-      //     overview: row.overview,
-      //     genres: row.genres.replace(/'/g, '"'),
-      //   };
-      // })
-      //   .then((response) => {
-      //     allData = response;
-      //     downloadCSV();
-      //   })
-      //   .catch((e2) => {
-      //     console.log(e2);
-      //   });
     }
     );
 }
