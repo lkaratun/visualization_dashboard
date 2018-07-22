@@ -1,140 +1,201 @@
-// const yearsList = new Set();
-// const xDataSelector = 'budget';
-// const yDataSelector = 'vote_average';
-// const rDataSelector = 'popularity';
-// const cDataSelector = 'runtime';
-// let allData;
-// const codeLetterToNumeric = new Map();
-// const codeNumericToName = new Map();
-// let mapData;
-// let countryCodes;
+// const to = require("await-to-js");
+// import to from 'await-to-js';
+function to(promise) {
+  return promise.then(data => [null, data])
+    .catch(err => [err]);
+}
 
 const mongoose = require("mongoose");
-// const d3 = require("d3");
 const csvtojson = require("csvtojson");
 const express = require("express");
+const fs = require('fs');
 
 const app = express();
 const router = express.Router();
 app.use("", router);
 app.listen(3000, () => console.log("App is running on port 3000"));
 
-router.get("/populate", async (req, res) => {
+
+// let test = d3.csvParse("adult,belongs_to_collection\n
+//   False, "{'id': 10194, 'name': 'Toy Story Collection', 'poster_path': '/7G9915LfUQ2lVfwMEEhDsn3kT4B.jpg', 'backdrop_path': '/9FBwqcd9IRruEDUrTdcaafOMKUq.jpg'}", 30000000, "[{'id': 16, 'name': 'Animation'}, {'id': 35, 'name': 'Comedy'}, {'id': 10751, 'name': 'Family'}]", http://toystory.disney.com/toy-story,862,tt0114709,en,Toy Story,"Led by Woody, Andy's toys live happily in his room until Andy's birthday brings Buzz Lightyear onto the scene. Afraid of losing his place in Andy's heart, Woody plots against Buzz. But when circumstances separate Buzz and Woody from their owner, the duo eventually learns to put aside their differences.",21.946943,/rhIRbceoE9lR4veEXuwCC2wARtG.jpg,"[{'name': 'Pixar Animation Studios', 'id': 3}]","[{'iso_3166_1': 'US', 'name': 'United States of America'}]",1995-10-30,373554033,81.0,"[{'iso_639_1': 'en', 'name': 'English'}]",Released,,Toy Story,False,7.7,5415)
+
+router.get("/populate/:fileName", async (req, res) => {
   try {
-    await fileToDb("allData.dsv");
-    const movies = await listMovies();
-    // console.log(movies);
+    await populateDBFromFile(req.params.fileName);
+    const movies = await readTopNMoviesFromDB(20);
     res.json(movies);
+  }
+  catch (e) { console.log(e); }
+});
+
+router.get("/convert/:fileName", async (req, res) => {
+  try {
+    const err = await convertCsvToDsv(req.params.fileName);
+    if (err) { res.send(err); }
+    else { res.send("Success!"); };
   }
   catch (e) { console.log(e); }
 });
 
 router.get("/", async (req, res) => {
   try {
-    const movies = await listMovies();
-    // console.log(movies);
+    const movies = await readTopNMoviesFromDB(20);
     res.json(movies);
   }
   catch (e) { console.log(e); }
 });
 
-const Movie = init();
 
-function listMovies() {
-  return Movie.find().limit(20);
-}
+const Movie = createMovieModel();
 
-function init() {
+
+
+function setUpDBConnection() {
   mongoose.connect('mongodb://localhost/moviesDB');
   mongoose.Promise = global.Promise;
   const db = mongoose.connection;
   db.on('error', console.error.bind(console, 'connection error: '));
-  // const countrySchema = new mongoose.Schema({
-  //   letterCode: String,
-  //   name: String
-  // });
+}
+
+function createMovieModel() {
+  setUpDBConnection();
+  // adult|collection|budget|genres|homepage|id|imdbId|originalLanguage|originalTitle|overview|popularity|posterPath|productionCompanies
+  // |productionCountries|releaseDate|revenue|runtime|spokenLanguages|status|tagline|title|video|voteAverage|voteCount
   const movieSchema = new mongoose.Schema({
-    id: Number,
-    name: String,
-    year: Number,
+    _id: String,
+    adult: Boolean,
+    collections: String,
     budget: Number,
-    popularity: Number,
-    runtime: Number,
-    vote_average: Number,
-    poster_path: String,
-    production_countries: [{ letter_code: String, name: String }],
+    genres: [String],
+    homepage: String,
+    id: Number,
+    originalTitle: String,
+    originalLanguage: String,
     overview: String,
-    genres: [String]
+    popularity: Number,
+    posterPath: String,
+    productionCompanies: [String],
+    productionCountries: [{ letterCode: String, name: String }],
+    releaseDate: Date,
+    revenue: Number,
+    runtime: Number,
+    spokenLanguages: [String],
+    status: String,
+    tagline: String,
+    title: String,
+    video: String,
+    voteAverage: Number,
+    voteCount: Number
   }, { collection: 'movies' });
-  return mongoose.model("movie", movieSchema, "movies");
+  return mongoose.model("movie", movieSchema, "moviesFull");
 }
 
-function populateDB(data) {
-  // const countrySchema = new mongoose.Schema({
-  //   letterCode: String,
-  //   name: String
-  // });
+async function convertCsvToDsv(fileName) {
+  const newFileName = `${fileName.slice(0, fileName.length - 4)}.dsv`; // replace extension (must be 3 chars long) with dsv
+  // Don't overwrite existing file
+  if (fs.existsSync(newFileName)) { console.log("DSV file already exists!"); return null; };
 
-  // const movieSchema = new mongoose.Schema({
-  //   id: Number,
-  //   name: String,
-  //   year: Number,
-  //   budget: Number,
-  //   popularity: Number,
-  //   runtime: Number,
-  //   vote_average: Number,
-  //   poster_path: String,
-  //   production_countries: [{ letter_code: String, name: String }],
-  //   overview: String,
-  //   genres: [String]
-  // }, { collection: 'movies' });
+  const [err, movies] = await to(csvtojson({ delimiter: "," }).fromFile(fileName));
+  if (err) { console.log(err); return err; }
+  const dsvString = convertArrayOfObjectsToString(movies,
+    { columnDelimiter: '|' });
+  if (dsvString == null) return "File read error";
 
-  // // const yearSchema = new mongoose.Schema({
-  // //   value: Number,
-  // //   movies: [movieSchema]
-  // // }, { collection: 'years' });
 
-  // // const Year = mongoose.model("year", yearSchema, "years");
-  // Movie = mongoose.model("movie", movieSchema, "movies");
-
-  data.forEach(row => {
-    const genres = JSON.parse(row.genres).map(entry => entry.name);
-    const movie = new Movie({
-      id: +row.id,
-      name: row.name,
-      year: +row.year,
-      budget: +row.budget,
-      popularity: +row.popularity,
-      runtime: +row.runtime,
-      vote_average: +row.vote_average,
-      poster_path: row.poster_path,
-      production_countries: JSON.parse(row.production_countries.replace(/'/g, '"')),
-      overview: row.overview,
-      genres
-    });
-
-    movie.save((err) => { if (err) { console.log(err); } });
-  });
-}
-
-function fileToDb(filename) {
-  // [mapData, countryCodes] = await Promise.all([d3.json('mapData.json'), d3.json('countryCodes.json')]);
-  csvtojson({ delimiter: "|" })
-    .fromFile(filename)
-    .then(async (filteredMovies) => {
-      populateDB(filteredMovies);
-    })
-    .catch((e) => {
-      console.log(e);
+  fs.writeFile(newFileName, dsvString, (fileWriteErr) => {
+    if (fileWriteErr) {
+      return fileWriteErr;
     }
-    );
+    console.log("The file was saved!");
+    return null;
+  });
+  return null;
+
 }
 
-function convertArrayOfObjectsToCSV(args) {
-  let result;
-  let ctr;
 
-  const data = args.data || null;
+
+async function populateDBFromFile(fileName) {
+  // [mapData, countryCodes] = await Promise.all([d3.json('mapData.json'), d3.json('countryCodes.json')]);
+
+  const [err, movies] = await to(csvtojson({ delimiter: "|", quote: "off" }).fromFile(fileName));
+  if (err) { console.log(err); return; }
+
+  // console.log(movies);
+
+  movies.forEach(row => {
+    const movie = parseMovieRow(row);
+
+    try {
+      movie.save((dbErr) => {
+        if (dbErr) {
+          if (dbErr.code !== 11000) {
+            console.log(dbErr);
+            console.log(movie);
+          }
+        }
+      });
+    }
+    catch (e) { console.log(e); console.log(movie); }
+  });
+  console.log("Population complete!");
+
+}
+
+function parseMovieRow(row) {
+  const {
+    homepage, originalLanguage, originalTitle,
+    title, overview, posterPath,
+    revenue, status, tagline
+  } = row;
+
+  try {
+    const compoundPropertiesList = ["genres", "spokenLanguages"];
+    const compoundProperties = replacePropertiesWithNames(row, compoundPropertiesList);
+    let { collections } = row;
+    if (typeof collections === "object") { collections = collections.name; }
+    const releaseDate = new Date(row.releaseDate) || null;
+    const movieData = {
+      _id: row.imdbId,
+      id: +row.id || null,
+
+      budget: +row.budget || null,
+      popularity: +row.popularity || null,
+      runtime: +row.runtime || null,
+      voteAverage: +row.vote_average || null,
+      voteCount: +row.vote_count || null,
+      adult: row.adult.toLowerCase() || null,
+      // Lots of double quotes around studio names
+      // productionCountries: JSON.parse(row.productionCountries) || null, 
+      collections, homepage, originalLanguage, originalTitle,
+      title, overview, posterPath,
+      revenue, status, tagline,
+      ...compoundProperties
+    };
+
+    if (releaseDate) { movieData.releaseDate = releaseDate; }
+    return new Movie(movieData);
+  }
+  catch (e) { return e; }
+}
+
+function replacePropertiesWithNames(line, properties) {
+  const res = {};
+  properties.forEach(property => {
+    try {
+      const arr = JSON.parse(line[property]);
+      if (Array.isArray(arr)) { res[property] = arr.map(entry => entry.name); }
+      else { res[property] = arr; }
+    }
+    catch (e) { console.log(e); console.log(line); console.log(property); }
+  });
+  return res;
+}
+
+function convertArrayOfObjectsToString(data, args) {
+  let result;
+  let firstValueOnLine;
+
   if (data == null || !data.length) {
     return null;
   }
@@ -149,15 +210,11 @@ function convertArrayOfObjectsToCSV(args) {
   result += lineDelimiter;
 
   data.forEach((item) => {
-    ctr = 0;
+    firstValueOnLine = true;
     keys.forEach((key) => {
-      if (ctr > 0) result += columnDelimiter;
-
-      // if (key === "name")
-      // result += `"${item[key]}"`;
-      // else
+      if (!firstValueOnLine) result += columnDelimiter;
       result += item[key];
-      ctr += 1;
+      firstValueOnLine = false;
     });
     result += lineDelimiter;
   });
@@ -165,34 +222,45 @@ function convertArrayOfObjectsToCSV(args) {
   return result;
 }
 
-// function downloadCSV() {
-//   // let data;
-//   const csv = convertArrayOfObjectsToCSV({
-//     data: allData,
-//     columnDelimiter: '|',
-//   });
-//   if (csv == null) return;
+function readTopNMoviesFromDB(movieCount) {
+  return Movie.find().limit(movieCount);
+}
 
-//   const filename = 'allData.dsv';
+async function generateDataFile(fileName) {
+  const csv = convertArrayOfObjectsToString({
+    // data,
+    columnDelimiter: '|'
+  });
+  if (csv == null) return;
 
-//   const blob = new Blob([csv], {
-//     type: 'text/csv;charset=utf-8;',
-//   });
 
-//   if (navigator.msSaveBlob) {
-//     // IE 10+
-//     navigator.msSaveBlob(blob, filename);
-//   } else {
-//     const link = document.createElement('a');
-//     if (link.download !== undefined) {
-//       // feature detection, Browsers that support HTML5 download attribute
-//       const url = URL.createObjectURL(blob);
-//       link.setAttribute('href', url);
-//       link.setAttribute('download', filename);
-//       link.style = 'visibility:hidden';
-//       document.body.appendChild(link);
-//       link.click();
-//       document.body.removeChild(link);
-//     }
-//   }
-// }
+  const blob = new Blob([csv], {
+    type: 'text/csv;charset=utf-8;',
+  });
+
+  if (navigator.msSaveBlob) {
+    // IE 10+
+    navigator.msSaveBlob(blob, fileName);
+  } else {
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      // feature detection, Browsers that support HTML5 download attribute
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', fileName);
+      link.style = 'visibility:hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  }
+
+
+
+
+}
+
+
+// const compoundPropertiesListTemp = ["collections", "genres", "productionCompanies", "productionCountries", "spokenLanguages"];
+// const rowTemp = 'False|{"id": 10194, "name": "Toy Story Collection", "poster_path": " / 7G9915LfUQ2lVfwMEEhDsn3kT4B.jpg", "backdrop_path": " / 9FBwqcd9IRruEDUrTdcaafOMKUq.jpg"}|30000000|[{"id": 16, "name": "Animation"}, {"id": 35, "name": "Comedy"}, {"id": 10751, "name": "Family"}]|http://toystory.disney.com/toy-story|862|tt0114709|en|Toy Story|Led by Woody, Andys toys live happily in his room until Andys birthday brings Buzz Lightyear onto the scene. Afraid of losing his place in Andys heart, Woody plots against Buzz.But when circumstances separate Buzz and Woody from their owner, the duo eventually learns to put aside their differences.| 21.946943 | /rhIRbceoE9lR4veEXuwCC2wARtG.jpg|[{"name": "Pixar Animation Studios", "id": 3}]|[{"iso_3166_1": "US", "name": "United States of America"}]|1995-10-30|373554033|81.0|[{"iso_639_1": "en", "name": "English"}]|Released||Toy Story|False|7.7|5415';
+// console.log(replacePropertiesWithNames(rowTemp, compoundPropertiesListTemp));
