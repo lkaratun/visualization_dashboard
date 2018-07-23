@@ -28,6 +28,16 @@ router.get("/populate/:fileName", async (req, res) => {
   catch (e) { console.log(e); }
 });
 
+router.get("/update/:fileName", async (req, res) => {
+  try {
+    await updateDBFromFile(req.params.fileName);
+    const movies = await readTopNMoviesFromDB(20);
+    res.json(movies);
+  }
+  catch (e) { console.log(e); }
+});
+
+
 router.get("/convert/:fileName", async (req, res) => {
   try {
     const err = await convertCsvToDsv(req.params.fileName);
@@ -46,10 +56,6 @@ router.get("/", async (req, res) => {
 });
 
 
-const Movie = createMovieModel();
-
-
-
 function setUpDBConnection() {
   mongoose.connect('mongodb://localhost/moviesDB');
   mongoose.Promise = global.Promise;
@@ -57,7 +63,7 @@ function setUpDBConnection() {
   db.on('error', console.error.bind(console, 'connection error: '));
 }
 
-function createMovieModel() {
+const Movie = function createMovieModel() {
   setUpDBConnection();
   // adult|collection|budget|genres|homepage|id|imdbId|originalLanguage|originalTitle|overview|popularity|posterPath|productionCompanies
   // |productionCountries|releaseDate|revenue|runtime|spokenLanguages|status|tagline|title|video|voteAverage|voteCount
@@ -74,7 +80,6 @@ function createMovieModel() {
     overview: String,
     popularity: Number,
     posterPath: String,
-    productionCompanies: [String],
     productionCountries: [{ letterCode: String, name: String }],
     releaseDate: Date,
     revenue: Number,
@@ -86,9 +91,9 @@ function createMovieModel() {
     video: String,
     voteAverage: Number,
     voteCount: Number
-  }, { collection: 'movies' });
-  return mongoose.model("movie", movieSchema, "moviesFull");
-}
+  });
+  return mongoose.model("Movie", movieSchema, "movies_v2");
+}();
 
 async function convertCsvToDsv(fileName) {
   const newFileName = `${fileName.slice(0, fileName.length - 4)}.dsv`; // replace extension (must be 3 chars long) with dsv
@@ -121,8 +126,6 @@ async function populateDBFromFile(fileName) {
   const [err, movies] = await to(csvtojson({ delimiter: "|", quote: "off" }).fromFile(fileName));
   if (err) { console.log(err); return; }
 
-  // console.log(movies);
-
   movies.forEach(row => {
     const movie = parseMovieRow(row);
 
@@ -142,6 +145,31 @@ async function populateDBFromFile(fileName) {
 
 }
 
+async function updateDBFromFile(fileName) {
+  // [mapData, countryCodes] = await Promise.all([d3.json('mapData.json'), d3.json('countryCodes.json')]);
+
+  const [err, movies] = await to(csvtojson({ delimiter: "|", quote: "off" }).fromFile(fileName));
+  if (err) { console.log(err); return; }
+
+  movies.forEach(row => {
+    const movie = parseMovieRow(row);
+
+    try {
+      movie.update((dbErr) => {
+        if (dbErr) {
+          console.log(dbErr);
+          console.log(movie);
+        }
+      });
+    }
+    catch (e) { console.log(e); console.log(movie); }
+  });
+  console.log("Update complete!");
+
+}
+
+
+
 function parseMovieRow(row) {
   const {
     homepage, originalLanguage, originalTitle,
@@ -154,26 +182,28 @@ function parseMovieRow(row) {
     const compoundProperties = replacePropertiesWithNames(row, compoundPropertiesList);
     let { collections } = row;
     if (typeof collections === "object") { collections = collections.name; }
-    const releaseDate = new Date(row.releaseDate) || null;
+    const releaseDate = row.releaseDate ? new Date(row.releaseDate) : undefined;
+    // Preserve date in UTC time zone 
+    if (releaseDate) { releaseDate.setUTCHours(12); }
+
     const movieData = {
       _id: row.imdbId,
-      id: +row.id || null,
-
-      budget: +row.budget || null,
-      popularity: +row.popularity || null,
-      runtime: +row.runtime || null,
-      voteAverage: +row.vote_average || null,
-      voteCount: +row.vote_count || null,
-      adult: row.adult.toLowerCase() || null,
-      // Lots of double quotes around studio names
-      // productionCountries: JSON.parse(row.productionCountries) || null, 
-      collections, homepage, originalLanguage, originalTitle,
-      title, overview, posterPath,
-      revenue, status, tagline,
+      id: +row.id || undefined,
+      budget: +row.budget || undefined,
+      popularity: +row.popularity || undefined,
+      runtime: +row.runtime || undefined,
+      voteAverage: +row.voteAverage || undefined,
+      voteCount: +row.voteCount || undefined,
+      adult: row.adult.toLowerCase() || undefined,
+      releaseDate, collections, homepage, originalLanguage, originalTitle,
+      title, overview, posterPath, revenue, status, tagline,
       ...compoundProperties
     };
 
-    if (releaseDate) { movieData.releaseDate = releaseDate; }
+    Object.keys(movieData).forEach(key => {
+      if ((movieData[key] === "" || movieData[key] === undefined) && key !== "_id") { delete movieData[key]; }
+    });
+
     return new Movie(movieData);
   }
   catch (e) { return e; }
@@ -225,42 +255,3 @@ function convertArrayOfObjectsToString(data, args) {
 function readTopNMoviesFromDB(movieCount) {
   return Movie.find().limit(movieCount);
 }
-
-async function generateDataFile(fileName) {
-  const csv = convertArrayOfObjectsToString({
-    // data,
-    columnDelimiter: '|'
-  });
-  if (csv == null) return;
-
-
-  const blob = new Blob([csv], {
-    type: 'text/csv;charset=utf-8;',
-  });
-
-  if (navigator.msSaveBlob) {
-    // IE 10+
-    navigator.msSaveBlob(blob, fileName);
-  } else {
-    const link = document.createElement('a');
-    if (link.download !== undefined) {
-      // feature detection, Browsers that support HTML5 download attribute
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', fileName);
-      link.style = 'visibility:hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  }
-
-
-
-
-}
-
-
-// const compoundPropertiesListTemp = ["collections", "genres", "productionCompanies", "productionCountries", "spokenLanguages"];
-// const rowTemp = 'False|{"id": 10194, "name": "Toy Story Collection", "poster_path": " / 7G9915LfUQ2lVfwMEEhDsn3kT4B.jpg", "backdrop_path": " / 9FBwqcd9IRruEDUrTdcaafOMKUq.jpg"}|30000000|[{"id": 16, "name": "Animation"}, {"id": 35, "name": "Comedy"}, {"id": 10751, "name": "Family"}]|http://toystory.disney.com/toy-story|862|tt0114709|en|Toy Story|Led by Woody, Andys toys live happily in his room until Andys birthday brings Buzz Lightyear onto the scene. Afraid of losing his place in Andys heart, Woody plots against Buzz.But when circumstances separate Buzz and Woody from their owner, the duo eventually learns to put aside their differences.| 21.946943 | /rhIRbceoE9lR4veEXuwCC2wARtG.jpg|[{"name": "Pixar Animation Studios", "id": 3}]|[{"iso_3166_1": "US", "name": "United States of America"}]|1995-10-30|373554033|81.0|[{"iso_639_1": "en", "name": "English"}]|Released||Toy Story|False|7.7|5415';
-// console.log(replacePropertiesWithNames(rowTemp, compoundPropertiesListTemp));
