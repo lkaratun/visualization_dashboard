@@ -69,9 +69,9 @@ router.get("/populate/:fileName", async (req, res) => {
   catch (e) { console.log(e); }
 });
 
-router.get("/update/:fileName", async (req, res) => {
+router.get("/update/:parameter/:fileName", async (req, res) => {
   try {
-    await updateDBFromFile(req.params.fileName);
+    await updateDBFromFile(req.params.fileName, req.params.parameter);
     const movies = await readTopNMoviesFromDB(20);
     res.json(movies);
   }
@@ -241,19 +241,29 @@ function parseMovieRow(row) {
   catch (e) { return e; }
 }
 
-async function updateDBFromFile(fileName) {
+async function updateDBFromFile(fileName, parameter) {
   const movies = await readFileContents(fileName);
   movies.forEach(row => {
-    const releaseYear = row.releaseDate ? row.releaseDate.slice(0, 4) : undefined;
+    const document = { $set: {} };
     try {
-      Movie.updateMany({ _id: row.imdbId }, { $set: { releaseYear } }, (dbErr) => {
+      const newValue = row[parameter] ? JSON.parse(row[parameter]) : undefined;
+      document.$set[parameter] = newValue;
+
+    }
+    catch (e) { console.error(e); console.log(row); }
+
+    // console.log(document);
+    try {
+      Movie.updateMany({ _id: row.imdbId }, document, (dbErr) => {
         if (dbErr) {
           console.error(dbErr);
+          console.log(row.imdbId);
         }
       });
     }
     catch (e) {
       console.error(e);
+      console.log(row.imdbId);
     }
   });
   console.log("Update complete!");
