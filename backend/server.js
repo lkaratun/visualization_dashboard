@@ -9,11 +9,15 @@ const mongoose = require("mongoose");
 const csvtojson = require("csvtojson");
 const express = require("express");
 const fs = require('fs');
+const cors = require("cors");
 
 const app = express();
+app.use(cors());
 const router = express.Router();
 app.use("", router);
-app.listen(3000, () => console.log("App is running on port 3000"));
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(3000, () => console.log("App is running on port 3000"));
+}
 
 const Movie = function createMovieModel() {
   setUpDBConnection();
@@ -120,7 +124,7 @@ router.get("/", async (req, res) => {
 
 async function listDistinctYears() {
   const years = await Movie.distinct("releaseYear");
-  return years.filter(year => year != null).sort((a, b) => a-b);
+  return years.filter(year => year != null).sort((a, b) => a - b);
 }
 
 
@@ -306,3 +310,5 @@ function readTopNMoviesFromDB(movieCount) {
   const result = Movie.find().limit(movieCount);
   return result;
 }
+
+module.exports = { listDistinctYears };

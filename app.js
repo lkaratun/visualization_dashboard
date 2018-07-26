@@ -1,101 +1,72 @@
-// let prevCountryId;
-let yearsCountriesData;
-// let filename;
-// let link;
+let filteredData;
 const svgWidth = 600;
 const svgHeight = 400;
 const padding = 40;
-const scatterPlot = d3
-  .select('#scatterPlot')
-  .attr('width', svgWidth)
-  .attr('height', svgHeight);
-
+const initialMinYear = 1950;
+const initialMaxYear = 1970;
 let sliderLow;
 let sliderHigh;
 let yearsChosen = [2017, 2017];
 let countriesChosen = [];
 
-
 let colorScale;
-let yearData;
-let yearsList = new Set();
+// let data;
+// const yearsList = new Set();
 const xDataSelector = 'budget';
-const yDataSelector = 'vote_average';
+const yDataSelector = 'voteAverage';
 const rDataSelector = 'popularity';
 const cDataSelector = 'runtime';
 const xLabel = 'Movie budget';
 const yLabel = 'Viewer rating';
 let allData;
-const imgBaseUrl = 'http://image.tmdb.org/t/p/w154/';
-const imgBaseUrlLarge = 'http://image.tmdb.org/t/p/w300/';
 const codeLetterToNumeric = new Map();
 const codeNumericToName = new Map();
 let mapData;
 let countryCodes;
+const imgBaseUrl = 'http://image.tmdb.org/t/p/w154/';
+const imgBaseUrlLarge = 'http://image.tmdb.org/t/p/w300/';
 
-// const genreNames = [
-//   'Animation',
-//   'Comedy',
-//   'Family',
-//   'Adventure',
-//   'Fantasy',
-//   'Drama',
-//   'Romance',
-//   'Action',
-//   'Crime',
-//   'Thriller',
-//   'History',
-//   'Science Fiction',
-//   'Mystery',
-//   'Horror',
-//   'War',
-//   'Foreign',
-//   'Western',
-//   'Documentary',
-//   'Music',
-//   'TV Movie',
-// ];
-// let genreColors = ["rgba(0, 255, 255, 0.5)", "rgba(255, 212, 0, 0.4)",
-// "hsla(20, 100%, 50%, 0.4)", "rgba(157, 0, 255, 0.7)",
-//   "rgba(255, 0, 199, 0.61)", "rgba(106, 0, 255, 0.74)",
-// "rgba(233, 0, 255, 0.5)", "rgba(0, 127, 255, 0.8)",
-//   "rgba(0, 13, 204, 0.65)", "rgba(70, 42, 42, 0.9)"
-// ];
-// const genreColors = [
-//   '#5cbae6',
-//   '#b6d957',
-//   '#fac364',
-//   '#8cd3ff',
-//   '#d998cb',
-//   '#f2d249',
-//   '#93b9c6',
-//   '#ccc5a8',
-//   '#52bacc',
-//   '#dbdb46',
-//   '#98aafb',
-// ];
+const backEndUrlBase = "http://localhost:3000";
 
-// const genreColorScale = d3
-//   .scaleOrdinal()
-//   .domain(genreNames)
-//   .range(genreColors);
 
 window.onload = async function init() {
   [mapData, countryCodes] = await Promise.all([d3.json('mapData.json'), d3.json('countryCodes.json')]);
-  await loadAndDisplayData();
+  // await loadAndDisplayDataFromFile();
 
-  // Set up year slider
+  getListOfYearsFromDB().then(years => {
+    setUpYearSlider(d3.min(years), d3.max(years));
+  });
+
+  // async-await syntax
+  // let yearsList = await (await getListOfYearsFromDB()).json();
+  // yearsList = yearsList.map(entry => +entry);
+  // setUpYearSlider(d3.min(yearsList), d3.max(yearsList));
+
+  allData = await loadAndDisplayDataFromDB({ minYear: initialMinYear, maxYear: initialMaxYear });
+  console.log(allData);
+  const movieCount = new Map();
+  allData.forEach(d =>
+    movieCount.set(d.year, movieCount.get(d.year) + 1 || 1));
+
+  refreshPlots({ data: allData, years: [initialMinYear, initialMaxYear], countries: countriesChosen });
+
+
+};
+
+function getListOfYearsFromDB() {
+  const requestURL = `${backEndUrlBase}/years`;
+  return fetch(requestURL).then(data => data.json()).then(years => years.map(d => +d));
+}
+
+function setUpYearSlider(minYear, maxYear) {
   const range = document.getElementById('range');
-  const minYear = d3.min(yearsList);
-  const maxYear = d3.max(yearsList);
-
   noUiSlider.create(range, {
-    start: [1950, 1970], // Handle start position
-    step: 1, // Slider moves in increments of '10'
-    connect: true, // Display a colored bar between the handles
-    direction: 'ltr', // Put '0' at the bottom of the slider
-    orientation: 'horizontal', // Orient the slider vertically
-    behaviour: 'tap-drag', // Move handle on tap, bar is draggable
+    start: [initialMinYear, initialMaxYear],
+    step: 1,
+    connect: true,
+    direction: 'ltr',
+    orientation: 'horizontal',
+    behavior: 'tap-drag',
     range: {
       // Slider can go from minYear to maxYear
       min: minYear,
@@ -107,12 +78,10 @@ window.onload = async function init() {
       density: 10,
     },
   });
-
   const yearInputs = [
     document.getElementById('yearInput1'),
     document.getElementById('yearInput2'),
   ];
-
   // When the slider value changes, update the input and span
   range.noUiSlider.on('update', (values, handle) => {
     [sliderLow, sliderHigh] = values;
@@ -120,12 +89,10 @@ window.onload = async function init() {
     sliderHigh = Math.round(sliderHigh);
     yearInputs[handle].value = Math.floor(values[handle]);
   });
-
   range.noUiSlider.on('set', (values) => {
     yearsChosen = values;
     refreshPlots(yearsChosen, countriesChosen);
   });
-
   // When the input changes, set the slider value
   yearInputs[0].addEventListener('change', function () {
     range.noUiSlider.set([this.value, null]);
@@ -135,108 +102,42 @@ window.onload = async function init() {
     range.noUiSlider.set([null, this.value]);
     sliderHigh = this.value;
   });
+}
 
-}; // window.onload
+function loadAndDisplayDataFromDB(options) {
+  const requestURL = `${backEndUrlBase}/getMoviesByYear/${options.minYear}-${options.maxYear}`;
+  return fetch(requestURL).then(data => data.json());
+}
 
-async function loadAndDisplayData() {
-  return d3
-    .dsv('|', 'allData.dsv', (row) => {
-      yearsList.add(+row.year);
-
-      return {
-        id: +row.id,
-        name: row.name,
-        year: +row.year,
-        budget: +row.budget,
-        popularity: +row.popularity,
-        runtime: +row.runtime,
-        vote_average: +row.vote_average,
-        poster_path: row.poster_path,
-        production_countries: JSON.parse(row.production_countries.replace(/'/g, '"')),
-        overview: row.overview,
-        genres: JSON.parse(row.genres),
-      };
-    })
-    .then(async (filteredMovies) => {
-      allData = filteredMovies;
-
-      yearsList = Array.from(yearsList).sort((a, b) => a - b);
-      const movieCount = new Map();
-      allData.forEach(d =>
-        movieCount.set(d.year, movieCount.get(d.year) + 1 || 1), );
-      // values of year slider
-
-      const indicesList = [];
-      yearsList.forEach((value, index) => indicesList.push(index));
-
-
-      refreshPlots(yearsChosen, countriesChosen);
-    })
-    .catch((e) => {
-      console.log(e);
-      // Retrieve all data from movies_metadata.csv and store it in allData array. Store selected year's data in yearData array
-      d3.csv('movies_metadata.csv', (row) => {
-        // Only keep rows with all keys having valid values
-        if (
-          !row[xDataSelector] ||
-          !row[yDataSelector] ||
-          !row[rDataSelector] ||
-          !row[cDataSelector] ||
-          !row.release_date ||
-          !row.title
-        ) {
-          return false;
-        }
-        yearsList.add(+row.release_date.slice(0, 4));
-
-        return {
-          id: +row.id,
-          name: row.title,
-          year: +row.release_date.slice(0, 4),
-          budget: +row.budget,
-          popularity: +row.popularity,
-          runtime: +row.runtime,
-          vote_average: +row.vote_average,
-          poster_path: row.poster_path,
-          production_countries: row.production_countries,
-          overview: row.overview,
-          genres: row.genres.replace(/'/g, '"'),
-        };
-      })
-        .then((response) => {
-          allData = response;
-          downloadCSV();
-        })
-        .catch((e2) => {
-          console.log(e2);
-        });
-    }
-    );
-} // loadAndDisplayData
-
-function refreshPlots(years = [], countries = []) {
-  yearData = allData.filter(d => d.year >= years[0] && d.year <= years[1]);
+function refreshPlots(options) {
+  const { data, years, countries } = options;
   if (countries.length) {
-    yearsCountriesData = yearData.filter(movie =>
+    filteredData = data.filter(movie =>
       countries.some(filteredCountry =>
-        movie.production_countries.some(productionCountry =>
-          codeLetterToNumeric.get(productionCountry.iso_3166_1) ===
+        movie.productionCountries.some(productionCountry =>
+          codeLetterToNumeric.get(productionCountry.code) ===
           filteredCountry)));
   }
   else {
-    yearsCountriesData = yearData;
+    filteredData = data;
   }
 
-  drawScatterPlot(countries);
-  drawMap(countries);
+  drawScatterPlot({ data: filteredData, years, countries });
+  drawMap(data);
   drawBarChart(countries);
 }
 
-function drawScatterPlot() {
+function drawScatterPlot(options) {
+  const { data } = options;
+  const scatterPlot = d3
+    .select('#scatterPlot')
+    .attr('width', svgWidth)
+    .attr('height', svgHeight);
+
   // Choose whether to use all data or current year's data for axes and grid scaling
   const dataForScaling = d3.select('#scaleGlobal').property('checked')
     ? allData
-    : yearsCountriesData;
+    : data;
 
   const xScale = d3
     .scaleLinear()
@@ -257,11 +158,11 @@ function drawScatterPlot() {
     .tickSizeOuter(0);
   colorScale = d3
     .scaleLinear()
-    .domain(d3.extent(yearsCountriesData, d => d[cDataSelector]))
+    .domain(d3.extent(filteredData, d => d[cDataSelector]))
     .range([d3.rgb('#66ff33'), d3.rgb('#cc0000')]);
   const radiusScale = d3
     .scaleLinear()
-    .domain(d3.extent(yearsCountriesData, d => d[rDataSelector]))
+    .domain(d3.extent(filteredData, d => d[rDataSelector]))
     .range([3, 12]);
 
   scatterPlot.selectAll('g').remove();
@@ -270,7 +171,7 @@ function drawScatterPlot() {
 
   scatterPlot
     .selectAll('circle')
-    .data(yearsCountriesData) // , d => d.id)
+    .data(filteredData) // , d => d.id)
     .exit()
     .remove();
 
@@ -284,9 +185,9 @@ function drawScatterPlot() {
     .call(yAxis)
     .attr('transform', `translate (${padding}, 0)`);
 
-  const points = scatterPlot.selectAll('circle').data(yearsCountriesData); // , d => d.id);
+  const points = scatterPlot.selectAll('circle').data(filteredData); // , d => d.id);
 
-  const [startYear, endYear] = yearsChosen;
+  const [startYear, endYear] = options.years;
   const yearsText = startYear === endYear ? `${yLabel} vs ${xLabel} (${startYear})` : `${yLabel} vs ${xLabel} (${startYear} - ${endYear})`;
 
   // Plot label
@@ -360,13 +261,9 @@ function drawScatterPlot() {
     .on('mousemove', (d) => {
       tooltip
         .style('opacity', 1)
-        .html(`
-        <b style="display: block">${d.name}</b>
+        .html(`<b style="display: block">${d.name}</b>
         <img style="display: block" src="${imgBaseUrl +
-          d.poster_path}" alt="" />
-
-
-        `, )
+          d.poster_path}" alt="" />`)
         .style(
           'left',
           `${d3.event.x /* - tooltip.node().offsetWidth/2 */ + 5}px`,
@@ -381,14 +278,14 @@ function drawScatterPlot() {
   });
 } // DrawScatterPlot
 
-async function drawMap() {
-
+async function drawMap(data) {
   // const mapData = await d3.json('mapData.json');
   // // File containing country codes, particularly letter and numeric versions
   // const countryCodes = await d3.json('countryCodes.json');
   // // Hashmap to convert letter country code to numeric
   // const [mapData, countryCodes] = await Promise.all([d3.json('mapData.json'), d3.json('countryCodes.json')]);
 
+  console.log(data);
   countryCodes.forEach((d) => {
     codeLetterToNumeric.set(d['alpha-2'], d['country-code']);
     codeNumericToName.set(d['country-code'], d.name);
@@ -401,10 +298,10 @@ async function drawMap() {
   });
 
   // Fill geoData with Movies data
-  yearData.forEach(row => {
+  data.forEach(row => {
     const countries = geoData.filter(geoDataEntry =>
-      row.production_countries.some(productionCountry =>
-        codeLetterToNumeric.get(productionCountry.iso_3166_1) === geoDataEntry.id));
+      row.productionCountries.some(productionCountry =>
+        codeLetterToNumeric.get(productionCountry.code) === geoDataEntry.id));
     countries.forEach(country => country.properties.movies.push(row));
   });
 
@@ -561,7 +458,7 @@ async function drawMap() {
 function drawBarChart() {
   // Count number of movies per genre for a given countryId
   let genreData = new Map();
-  yearsCountriesData.forEach((movie) => {
+  filteredData.forEach((movie) => {
     movie.genres.forEach((genre) => {
       genreData.set(genre.name, genreData.get(genre.name) + 1 || 1);
     });
@@ -585,7 +482,7 @@ function drawBarChart() {
     svgWidth / 10,
   );
   // make tallest bar equal svgHeight
-  // const barHeightPerOccurence =
+  // const barHeightPerOccurrence =
   //   (svgHeight - 2 * padding) / d3.max(genreData, d => d[1]);
 
   const bars = d3
@@ -669,10 +566,10 @@ function displayMovieInfo(id) {
       ? `${movie.runtime} min`
       : `${Math.floor(movie.runtime / 60)} hr ${movie.runtime % 60} min`;
   let countries = '';
-  movie.production_countries.forEach((country) => {
+  movie.productionCountries.forEach((country) => {
     countries += `${country.name}, `;
   });
-  if (movie.production_countries.length > 1) {
+  if (movie.productionCountries.length > 1) {
     countries = `Production countries: ${countries}`;
   } else {
     countries = `Production country: ${countries}`;
@@ -695,69 +592,69 @@ function displayMovieInfo(id) {
     .style('width', `${svgWidth}px`);
 } // displayMovieInfo
 
-function convertArrayOfObjectsToCSV(args) {
-  let result;
-  let ctr;
+// function convertArrayOfObjectsToCSV(args) {
+//   let result;
+//   let ctr;
 
-  const data = args.data || null;
-  if (data == null || !data.length) {
-    return null;
-  }
+//   const data = args.data || null;
+//   if (data == null || !data.length) {
+//     return null;
+//   }
 
-  const columnDelimiter = args.columnDelimiter || ',';
-  const lineDelimiter = args.lineDelimiter || '\n';
+//   const columnDelimiter = args.columnDelimiter || ',';
+//   const lineDelimiter = args.lineDelimiter || '\n';
 
-  const keys = Object.keys(data[0]);
+//   const keys = Object.keys(data[0]);
 
-  result = '';
-  result += keys.join(columnDelimiter);
-  result += lineDelimiter;
+//   result = '';
+//   result += keys.join(columnDelimiter);
+//   result += lineDelimiter;
 
-  data.forEach((item) => {
-    ctr = 0;
-    keys.forEach((key) => {
-      if (ctr > 0) result += columnDelimiter;
+//   data.forEach((item) => {
+//     ctr = 0;
+//     keys.forEach((key) => {
+//       if (ctr > 0) result += columnDelimiter;
 
-      // if (key === "name")
-      // result += `"${item[key]}"`;
-      // else
-      result += item[key];
-      ctr += 1;
-    });
-    result += lineDelimiter;
-  });
+//       // if (key === "name")
+//       // result += `"${item[key]}"`;
+//       // else
+//       result += item[key];
+//       ctr += 1;
+//     });
+//     result += lineDelimiter;
+//   });
 
-  return result;
-}
+//   return result;
+// }
 
-function downloadCSV() {
-  // let data;
-  const csv = convertArrayOfObjectsToCSV({
-    data: allData,
-    columnDelimiter: '|',
-  });
-  if (csv == null) return;
+// function downloadCSV() {
+//   // let data;
+//   const csv = convertArrayOfObjectsToCSV({
+//     data: allData,
+//     columnDelimiter: '|',
+//   });
+//   if (csv == null) return;
 
-  const filename = 'allData.dsv';
+//   const filename = 'allData.dsv';
 
-  const blob = new Blob([csv], {
-    type: 'text/csv;charset=utf-8;',
-  });
+//   const blob = new Blob([csv], {
+//     type: 'text/csv;charset=utf-8;',
+//   });
 
-  if (navigator.msSaveBlob) {
-    // IE 10+
-    navigator.msSaveBlob(blob, filename);
-  } else {
-    const link = document.createElement('a');
-    if (link.download !== undefined) {
-      // feature detection, Browsers that support HTML5 download attribute
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', filename);
-      link.style = 'visibility:hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  }
-}
+//   if (navigator.msSaveBlob) {
+//     // IE 10+
+//     navigator.msSaveBlob(blob, filename);
+//   } else {
+//     const link = document.createElement('a');
+//     if (link.download !== undefined) {
+//       // feature detection, Browsers that support HTML5 download attribute
+//       const url = URL.createObjectURL(blob);
+//       link.setAttribute('href', url);
+//       link.setAttribute('download', filename);
+//       link.style = 'visibility:hidden';
+//       document.body.appendChild(link);
+//       link.click();
+//       document.body.removeChild(link);
+//     }
+//   }
+// }
