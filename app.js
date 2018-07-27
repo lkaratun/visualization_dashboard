@@ -261,9 +261,9 @@ function drawScatterPlot(options) {
     .on('mousemove', (d) => {
       tooltip
         .style('opacity', 1)
-        .html(`<b style="display: block">${d.name}</b>
+        .html(`<b style="display: block">${d.title}</b>
         <img style="display: block" src="${imgBaseUrl +
-          d.poster_path}" alt="" />`)
+          d.posterPath}" alt="" />`)
         .style(
           'left',
           `${d3.event.x /* - tooltip.node().offsetWidth/2 */ + 5}px`,
@@ -581,15 +581,16 @@ function displayMovieInfo(id) {
   }
   // get rid or comma and space after the last country
   countries = countries.slice(0, -2);
+
   const htmlString = `
   <img style="display: block; float:left; margin: 10px; height: 95%" src="${imgBaseUrlLarge +
-    movie.poster_path}" alt="Image poster not found" />
-  <h3 style="text-align: center">${movie.name}</h3>
-  <h6>Year: ${movie.year}<br>
+    movie.posterPath}" alt="Image poster not found" />
+  <h3 style="text-align: center">${movie.title}</h3>
+  <h6>Year: ${movie.releaseYear}<br>
   ${countries}<br>
   Budget: ${budget}<br>
   Runtime: ${runTime}<br>
-  Average rating: ${movie.vote_average}</h6>
+  Average rating: ${movie.voteAverage}</h6>
   <p>${movie.overview}</p>
   `;
   d3.select('#movieInfo')
