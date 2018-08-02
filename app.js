@@ -1,3 +1,19 @@
+import * as countryCodesObj from "./countryCodes.json";
+import * as mapData from "./mapData.json";
+import "./moveTo";
+
+const countryCodes = Object.values(countryCodesObj);
+
+console.log(mapData);
+window.mapData = mapData;
+
+const colorbrewer = require('colorbrewer');
+const d3 = require("d3");
+
+console.log(d3.selection.prototype);
+
+window.colorbrewer = colorbrewer;
+
 let filteredData;
 const svgWidth = 600;
 const svgHeight = 400;
@@ -10,8 +26,6 @@ let yearsChosen = [2017, 2017];
 let countriesChosen = [];
 
 let colorScale;
-// let data;
-// const yearsList = new Set();
 const xDataSelector = 'budget';
 const yDataSelector = 'voteAverage';
 const rDataSelector = 'popularity';
@@ -22,8 +36,7 @@ let yearData;
 const codeLetterToNumeric = new Map();
 const codeNumericToLetter = new Map();
 const codeNumericToName = new Map();
-let mapData;
-let countryCodes;
+
 const imgBaseUrl = 'http://image.tmdb.org/t/p/w154/';
 const imgBaseUrlLarge = 'http://image.tmdb.org/t/p/w300/';
 
@@ -31,7 +44,7 @@ const backEndUrlBase = "http://localhost:3000";
 
 
 window.onload = async function init() {
-  [mapData, countryCodes] = await Promise.all([d3.json('mapData.json'), d3.json('countryCodes.json')]);
+  // [mapData, countryCodes] = await Promise.all([d3.json('mapData.json'), d3.json('countryCodes.json')]);
   // await loadAndDisplayDataFromFile();
 
   getListOfYearsFromDB().then(years => {
@@ -127,7 +140,7 @@ async function refreshPlots(options) {
   drawBarChart({ data: filteredData });
 }
 
-function drawScatterPlot(options) {
+async function drawScatterPlot(options) {
   const { data } = options;
   const scatterPlot = d3
     .select('#scatterPlot')
@@ -252,6 +265,8 @@ function drawScatterPlot(options) {
           : 0),
   );
 
+  console.log({ points });
+  window.points = points;
   points.moveToFront();
 
   // tooltips
