@@ -42,6 +42,11 @@
 	transform: rotate(-90deg);
 	stroke:#000000;
 	/*stroke-width:1px*/
+	text-anchor: start;
+	font-family: 'Lato', sans-serif;
+	font-weight: lighter;
+	/* font-size: 3em; */
+	alignment-baseline: middle;
 }
 
 #movieInfo, .plot {

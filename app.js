@@ -16,7 +16,7 @@ const svgWidth = 600;
 const svgHeight = 400;
 const padding = 40;
 const initialMinYear = 1950;
-const initialMaxYear = 1970;
+const initialMaxYear = 1960;
 let sliderLow;
 let sliderHigh;
 let yearsChosen = [2017, 2017];
@@ -35,7 +35,7 @@ const codeNumericToLetter = new Map();
 const codeNumericToName = new Map();
 
 const imgBaseUrl = 'http://image.tmdb.org/t/p/w154/';
-const imgBaseUrlLarge = 'http://image.tmdb.org/t/p/w300/';
+const imgBaseUrlLarge = 'http://image.tmdb.org/t/p/w185/';
 
 const backEndUrlBase = "http://localhost:3000";
 
@@ -135,25 +135,19 @@ async function refreshPlots(options) {
   drawBarChart({ data: filteredData });
 }
 
-async function drawScatterPlot(options) {
-  const { data } = options;
+async function drawScatterPlot({ data, years }) {
   const scatterPlot = d3
     .select('#scatterPlot')
     .attr('width', svgWidth)
     .attr('height', svgHeight);
 
-  // Choose whether to use all data or current year's data for axes and grid scaling
-  const dataForScaling = d3.select('#scaleGlobal').property('checked')
-    ? yearData
-    : data;
-
   const xScale = d3
     .scaleLinear()
-    .domain(d3.extent(dataForScaling, d => d[xDataSelector]))
+    .domain(d3.extent(data, d => d[xDataSelector]))
     .range([padding, svgWidth - padding]);
   const yScale = d3
     .scaleLinear()
-    .domain(d3.extent(dataForScaling, d => d[yDataSelector]))
+    .domain(d3.extent(data, d => d[yDataSelector]))
     .range([svgHeight - padding, padding]);
   const xAxis = d3
     .axisBottom(xScale)
@@ -166,11 +160,11 @@ async function drawScatterPlot(options) {
     .tickSizeOuter(0);
   colorScale = d3
     .scaleLinear()
-    .domain(d3.extent(filteredData, d => d[cDataSelector]))
+    .domain(d3.extent(data, d => d[cDataSelector]))
     .range([d3.rgb('#66ff33'), d3.rgb('#cc0000')]);
   const radiusScale = d3
     .scaleLinear()
-    .domain(d3.extent(filteredData, d => d[rDataSelector]))
+    .domain(d3.extent(data, d => d[rDataSelector]))
     .range([3, 12]);
 
   scatterPlot.selectAll('g').remove();
@@ -179,7 +173,7 @@ async function drawScatterPlot(options) {
 
   scatterPlot
     .selectAll('circle')
-    .data(filteredData) // , d => d.id)
+    .data(data) // , d => d.id)
     .exit()
     .remove();
 
@@ -195,7 +189,7 @@ async function drawScatterPlot(options) {
 
   const points = scatterPlot.selectAll('circle').data(filteredData); // , d => d.id);
 
-  const [startYear, endYear] = options.years;
+  const [startYear, endYear] = years;
   const yearsText = startYear === endYear ? `${yLabel} vs ${xLabel} (${startYear})` : `${yLabel} vs ${xLabel} (${startYear} - ${endYear})`;
 
   // Plot label
@@ -227,7 +221,7 @@ async function drawScatterPlot(options) {
     .attr('transform', 'rotate(-90)')
     .attr('x', -svgHeight / 2)
     .attr('y', 0)
-    .attr('dy', '1.5em')
+    .attr('dy', '0.7em')
     .attr('font-size', '1em')
     .attr('text-anchor', 'middle');
 
@@ -472,12 +466,7 @@ async function drawMap({ data }) {
     .attr('class', 'y axis')
     .attr('transform', `translate(${svgWidth * 0.1}, ${svgHeight * 0.95})`)
     .call(yAxis);
-  // .append("text")
-  // .attr("transform", "rotate(-90)")
-  // .attr("y", 0)
-  // .attr("dy", ".71em")
-  // .style("text-anchor", "end")
-  // .text("axis title");
+
 } // drawMap
 
 function drawBarChart({ data }) {
@@ -550,11 +539,7 @@ function drawBarChart({ data }) {
     .merge(barLabels)
     .text(d => d[0])
     .attr('y', (d, i) => padding + (barWidth + barPadding) * i + barWidth / 2)
-    .attr('x', -svgHeight + paddingBottom * 2)
-    .attr('text-anchor', 'start')
-    .attr('alignment-baseline', 'middle')
-    .attr('font-size', '1em')
-    .attr('font-weight', '200');
+    .attr('x', -svgHeight + paddingBottom * 2);
 
   // Plot label
   // const countryName = codeNumericToName.has(countries)
@@ -600,17 +585,17 @@ function displayMovieInfo(id) {
     countries = `Production country: ${countries}`;
   }
   // get rid or comma and space after the last country
-  countries = countries.slice(0, -2);
+  countries = countries.slice(0, -2).replace("United States of America", "USA");
 
   const htmlString = `
   <img style="display: block; float:left; margin: 10px; height: 95%" src="${imgBaseUrlLarge +
     movie.posterPath}" alt="Image poster not found" />
-  <h3 style="text-align: center">${movie.title}</h3>
-  <h6>Year: ${movie.releaseYear}<br>
+  <h2 style="text-align: center">${movie.title}</h2>
+  <h3>Year: ${movie.releaseYear}<br>
   ${countries}<br>
   Budget: ${budget}<br>
   Runtime: ${runTime}<br>
-  Average rating: ${movie.voteAverage}</h6>
+  Average rating: ${movie.voteAverage}</h3>
   <p>${movie.overview}</p>
   `;
   d3.select('#movieInfo')
@@ -618,70 +603,4 @@ function displayMovieInfo(id) {
     .style('width', `${svgWidth}px`);
 } // displayMovieInfo
 
-// function convertArrayOfObjectsToCSV(args) {
-//   let result;
-//   let ctr;
-
-//   const data = args.data || null;
-//   if (data == null || !data.length) {
-//     return null;
-//   }
-
-//   const columnDelimiter = args.columnDelimiter || ',';
-//   const lineDelimiter = args.lineDelimiter || '\n';
-
-//   const keys = Object.keys(data[0]);
-
-//   result = '';
-//   result += keys.join(columnDelimiter);
-//   result += lineDelimiter;
-
-//   data.forEach((item) => {
-//     ctr = 0;
-//     keys.forEach((key) => {
-//       if (ctr > 0) result += columnDelimiter;
-
-//       // if (key === "name")
-//       // result += `"${item[key]}"`;
-//       // else
-//       result += item[key];
-//       ctr += 1;
-//     });
-//     result += lineDelimiter;
-//   });
-
-//   return result;
-// }
-
-// function downloadCSV() {
-//   // let data;
-//   const csv = convertArrayOfObjectsToCSV({
-//     data: allData,
-//     columnDelimiter: '|',
-//   });
-//   if (csv == null) return;
-
-//   const filename = 'allData.dsv';
-
-//   const blob = new Blob([csv], {
-//     type: 'text/csv;charset=utf-8;',
-//   });
-
-//   if (navigator.msSaveBlob) {
-//     // IE 10+
-//     navigator.msSaveBlob(blob, filename);
-//   } else {
-//     const link = document.createElement('a');
-//     if (link.download !== undefined) {
-//       // feature detection, Browsers that support HTML5 download attribute
-//       const url = URL.createObjectURL(blob);
-//       link.setAttribute('href', url);
-//       link.setAttribute('download', filename);
-//       link.style = 'visibility:hidden';
-//       document.body.appendChild(link);
-//       link.click();
-//       document.body.removeChild(link);
-//     }
-//   }
-// }
 module.exports = { getListOfYearsFromDB };
