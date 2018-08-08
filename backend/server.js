@@ -12,7 +12,9 @@ const fs = require('fs');
 const cors = require("cors");
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:1234'
+}));
 const router = express.Router();
 app.use("", router);
 if (process.env.NODE_ENV !== 'test') {
@@ -136,7 +138,7 @@ function findMoviesInYearsRange(startYear, endYear) {
   const startDate = new Date(`${startYear}-01-01`);
   const endDate = new Date(`${endYear}-12-31`);
   const query = { releaseDate: { "$gte": startDate, "$lte": endDate } };
-  return Movie.find(query);
+  return Movie.find(query).lean(true);
 }
 
 async function convertCsvToDsv(fileName) {
@@ -165,7 +167,7 @@ async function convertCsvToDsv(fileName) {
 
 
 async function populateDBFromFile(fileName) {
-  // [mapData, countryCodes] = await Promise.all([d3.json('mapData.json'), d3.json('countryCodes.json')]);
+  // const [mapData, countryCodes] = await Promise.all([d3.json('mapData.json'), d3.json('countryCodes.json')]);
 
   const movies = readFileContents(fileName);
 
