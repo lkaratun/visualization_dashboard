@@ -4,13 +4,13 @@ import "./moveTo";
 
 const countryCodes = Object.values(countryCodesObj);
 
-console.log(mapData);
+// console.log(mapData);
 window.mapData = mapData;
 
 const colorbrewer = require('colorbrewer');
 const d3 = require("d3");
 
-console.log(d3.selection.prototype);
+// console.log(d3.selection.prototype);
 
 window.colorbrewer = colorbrewer;
 
@@ -100,7 +100,7 @@ function setUpYearSlider(minYear, maxYear) {
     // Convert from string to int
     yearsChosen = values.map(d => Math.round(+d));
     yearData = await loadAndDisplayDataFromDB({ years: [yearsChosen[0], yearsChosen[1]] });
-    console.log(yearData);
+    // console.log(yearData);
     refreshPlots({ data: yearData, years: yearsChosen, countries: countriesChosen });
   });
   // When the input changes, set the slider value
@@ -122,7 +122,7 @@ function loadAndDisplayDataFromDB(options) {
 
 async function refreshPlots(options) {
   const { years, countries } = options;
-  console.log(countries);
+  // console.log(countries);
   yearData = await loadAndDisplayDataFromDB({ years });
 
   if (countries.length) {
@@ -265,7 +265,7 @@ async function drawScatterPlot(options) {
           : 0),
   );
 
-  console.log({ points });
+  // console.log({ points });
   window.points = points;
   points.moveToFront();
 
@@ -314,7 +314,7 @@ async function drawMap({ data }) {
   });
 
 
-  console.log(data);
+  // console.log(data);
   // Fill geoData with Movies data
   data.forEach(row => {
     const countries = geoData.filter(geoDataEntry =>
@@ -323,7 +323,7 @@ async function drawMap({ data }) {
     countries.forEach(country => country.properties.movies.push(row));
   });
 
-  console.log(geoData);
+  // console.log(geoData);
 
   colorScale = d3
     .scaleLinear()
@@ -475,14 +475,16 @@ async function drawMap({ data }) {
   // .text("axis title");
 } // drawMap
 
-function drawBarChart() {
+function drawBarChart({ data }) {
   // Count number of movies per genre for a given countryId
   let genreData = new Map();
-  filteredData.forEach((movie) => {
+  console.log(data);
+  data.forEach((movie) => {
     movie.genres.forEach((genre) => {
-      genreData.set(genre.name, genreData.get(genre.name) + 1 || 1);
+      genreData.set(genre, genreData.get(genre) + 1 || 1);
     });
   });
+  console.log(genreData);
 
   const paddingBottom = 10;
   const yScale = d3
@@ -679,3 +681,4 @@ function displayMovieInfo(id) {
 //     }
 //   }
 // }
+module.exports = { getListOfYearsFromDB };

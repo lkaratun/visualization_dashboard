@@ -29,7 +29,8 @@
       "as-needed"
     ],
     "semi": "error",
-    "linebreak-style": "off"
+    "linebreak-style": "off",
+    "import/no-extraneous-dependencies": 0
   },
   "plugins": [
     "prettier"
