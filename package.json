@@ -23,9 +23,11 @@
     "http-server": "^0.11.1",
     "mongoose": "^5.1.6",
     "nouislider": "^11.1.0",
-    "webpack": "^4.16.3"
+    "webpack": "^4.16.3",
+    "whatwg-fetch": "^2.0.4"
   },
   "devDependencies": {
+    "babel-plugin-dynamic-import-node": "^2.0.0",
     "eslint-config-airbnb-base": "^12.1.0",
     "eslint-config-prettier": "^2.9.0",
     "eslint-plugin-import": "^2.12.0",
@@ -59,5 +61,8 @@
       "window": true,
       "d3": true
     }
+  },
+  "jest": {
+    "browser": true
   }
 }
