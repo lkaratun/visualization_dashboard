@@ -1,8 +1,0 @@
-adult,collections
-False,{"id": 10194, "name": "Toy Story Collection"}
-
-
-
-csv to dsv
-remove quotes from around the objects and arrays
-replace single quotes around keys with double quotes
