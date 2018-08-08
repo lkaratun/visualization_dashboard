@@ -4,13 +4,10 @@ import "./moveTo";
 
 const countryCodes = Object.values(countryCodesObj);
 
-// console.log(mapData);
 window.mapData = mapData;
 
 const colorbrewer = require('colorbrewer');
 const d3 = require("d3");
-
-// console.log(d3.selection.prototype);
 
 window.colorbrewer = colorbrewer;
 
@@ -100,7 +97,6 @@ function setUpYearSlider(minYear, maxYear) {
     // Convert from string to int
     yearsChosen = values.map(d => Math.round(+d));
     yearData = await loadAndDisplayDataFromDB({ years: [yearsChosen[0], yearsChosen[1]] });
-    // console.log(yearData);
     refreshPlots({ data: yearData, years: yearsChosen, countries: countriesChosen });
   });
   // When the input changes, set the slider value
@@ -122,7 +118,6 @@ function loadAndDisplayDataFromDB(options) {
 
 async function refreshPlots(options) {
   const { years, countries } = options;
-  // console.log(countries);
   yearData = await loadAndDisplayDataFromDB({ years });
 
   if (countries.length) {
@@ -265,7 +260,6 @@ async function drawScatterPlot(options) {
           : 0),
   );
 
-  // console.log({ points });
   window.points = points;
   points.moveToFront();
 
@@ -300,7 +294,6 @@ async function drawMap({ data }) {
   // // Hashmap to convert letter country code to numeric
   // const [mapData, countryCodes] = await Promise.all([d3.json('mapData.json'), d3.json('countryCodes.json')]);
 
-  // console.log(data);
   countryCodes.forEach((d) => {
     codeLetterToNumeric.set(d['alpha-2'], d['country-code']);
     codeNumericToLetter.set(d['country-code'], d['alpha-2']);
@@ -314,7 +307,6 @@ async function drawMap({ data }) {
   });
 
 
-  // console.log(data);
   // Fill geoData with Movies data
   data.forEach(row => {
     const countries = geoData.filter(geoDataEntry =>
@@ -323,13 +315,16 @@ async function drawMap({ data }) {
     countries.forEach(country => country.properties.movies.push(row));
   });
 
-  // console.log(geoData);
 
   colorScale = d3
     .scaleLinear()
-    // Adding 1 for log scale to work correctly
     .domain(d3.extent(geoData, d => d.properties.movies.length))
     .range([colorbrewer.Blues[5][0], colorbrewer.Blues[5][4]]);
+
+  const colorScaleHighlighted = d3
+    .scaleLinear()
+    .domain(d3.extent(geoData, d => d.properties.movies.length))
+    .range([colorbrewer.OrRd[5][0], colorbrewer.OrRd[5][4]]);
 
   const projection = d3 // d3.geoMercator()
     .geoNaturalEarth1()
@@ -347,6 +342,8 @@ async function drawMap({ data }) {
 
   worldMap.exit().remove();
 
+  const defaultCountryFillColor = "#DDDDDD";
+
   worldMap
     .enter()
     .append('path')
@@ -355,11 +352,12 @@ async function drawMap({ data }) {
     .attr('d', path)
     .attr(
       'fill',
-      d =>
-        (d.properties.movies.length
-          ? colorScale(d.properties.movies.length)
-          : "#DDDDDD"),
-  );
+      d => {
+        if (!d.properties.movies.length) { return defaultCountryFillColor; }
+        if (countriesChosen.includes(codeNumericToLetter.get(d.id))) { return colorScaleHighlighted(d.properties.movies.length); }
+        return colorScale(d.properties.movies.length);
+      });
+
 
   // Tooltips and click actions
   const tooltip = d3.select('.tooltip');
@@ -368,8 +366,15 @@ async function drawMap({ data }) {
     .on('mousemove', handleMouseOver)
     .on('mouseout', () => tooltip.style('opacity', 0))
     .on('click', (d) => {
-      if (d3.event.shiftKey) { countriesChosen.push(codeNumericToLetter.get(d.id)); }
-      else { countriesChosen = [codeNumericToLetter.get(d.id)]; }
+      const countryName = codeNumericToLetter.get(d.id);
+      if (d3.event.shiftKey) {
+        if (countriesChosen.includes(countryName)) { countriesChosen = countriesChosen.filter(entry => entry !== countryName); }
+        else { countriesChosen.push(countryName); }
+      }
+      // Country was the only one chosen
+      else if (JSON.stringify(countriesChosen) === JSON.stringify([countryName])) { countriesChosen = []; }
+      // Multiple or no countries were chosen
+      else { countriesChosen = [countryName]; }
       refreshPlots({ years: yearsChosen, countries: countriesChosen });
     });
 
@@ -478,13 +483,11 @@ async function drawMap({ data }) {
 function drawBarChart({ data }) {
   // Count number of movies per genre for a given countryId
   let genreData = new Map();
-  console.log(data);
   data.forEach((movie) => {
     movie.genres.forEach((genre) => {
       genreData.set(genre, genreData.get(genre) + 1 || 1);
     });
   });
-  console.log(genreData);
 
   const paddingBottom = 10;
   const yScale = d3
