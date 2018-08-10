@@ -10,16 +10,22 @@ const csvtojson = require("csvtojson");
 const express = require("express");
 const fs = require('fs');
 const cors = require("cors");
+const https = require('https');
 
 const app = express();
 app.use(cors({
-  origin: 'http://localhost:1234'
+  origin: ['http://localhost:1234', 'https://localhost:1234', 'http://levkaratun.com:1234', 'https://levkaratun.com']
 }));
 const router = express.Router();
 app.use("", router);
-if (process.env.NODE_ENV !== 'test') {
-  app.listen(3000, () => console.log("App is running on port 3000"));
-}
+// if (process.env.NODE_ENV !== 'test') {
+//   app.listen(3000, () => console.log("App is running on port 3000"));
+// }
+https.createServer({
+  key: fs.readFileSync('server.key'),
+  cert: fs.readFileSync('server.cert')
+}, app)
+  .listen(3000, () => console.log('Server is listening to https requests on port 3000'));
 
 const Movie = function createMovieModel() {
   setUpDBConnection();
@@ -56,7 +62,8 @@ const Movie = function createMovieModel() {
 
 
 function setUpDBConnection() {
-  mongoose.connect('mongodb://localhost/moviesDB');
+  // mongoose.connect('mongodb://localhost/moviesDB');
+  mongoose.connect('mongodb://nodejs:eELPHv5WuDQS@localhost/moviesDB');
   mongoose.Promise = global.Promise;
   const db = mongoose.connection;
   db.on('error', console.error.bind(console, 'connection error: '));
@@ -98,7 +105,7 @@ router.get("/getMoviesByYear/:startYear-:endYear", async (req, res) => {
       res.send(err);
     }
     else {
-      console.log("Success");
+      // console.log("Success");
       res.send(movies);
     };
   }
@@ -108,7 +115,7 @@ router.get("/getMoviesByYear/:startYear-:endYear", async (req, res) => {
 router.get("/years", async (req, res) => {
   try {
     const years = await listDistinctYears();
-    console.log(years.length);
+    // console.log(years.length);
     res.json(years);
   }
   catch (e) { console.error(e); }

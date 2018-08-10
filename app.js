@@ -34,10 +34,11 @@ const codeLetterToNumeric = new Map();
 const codeNumericToLetter = new Map();
 const codeNumericToName = new Map();
 
-const imgBaseUrl = 'http://image.tmdb.org/t/p/w154/';
-const imgBaseUrlLarge = 'http://image.tmdb.org/t/p/w185/';
+const imgBaseUrl = 'https://image.tmdb.org/t/p/w154/';
+const imgBaseUrlLarge = 'https://image.tmdb.org/t/p/w185/';
 
-const backEndUrlBase = "http://localhost:3000";
+// const backEndUrlBase = "https://localhost:3000";
+const backEndUrlBase = "http://levkaratun.com:3000";
 
 
 window.onload = async function init() {
