@@ -1,9 +1,7 @@
 // const to = require("await-to-js");
 // import to from 'await-to-js';
-function to(promise) {
-  return promise.then(data => [null, data])
-    .catch(err => [err]);
-}
+const { MongoClient } = require('mongodb');
+
 
 const mongoose = require("mongoose");
 const csvtojson = require("csvtojson");
@@ -27,47 +25,51 @@ https.createServer({
 }, app)
   .listen(3000, () => console.log('Server is listening to https requests on port 3000'));
 
-const Movie = function createMovieModel() {
-  setUpDBConnection();
-  // adult|collection|budget|genres|homepage|id|imdbId|originalLanguage|originalTitle|overview|popularity|posterPath|productionCompanies
-  // |productionCountries|releaseDate|revenue|runtime|spokenLanguages|status|tagline|title|video|voteAverage|voteCount
-  const movieSchema = new mongoose.Schema({
-    _id: String,
-    adult: Boolean,
-    collections: String,
-    budget: Number,
-    genres: [String],
-    homepage: String,
-    id: Number,
-    originalTitle: String,
-    originalLanguage: String,
-    overview: String,
-    popularity: Number,
-    posterPath: String,
-    productionCountries: [{ letterCode: String, name: String }],
-    releaseDate: Date,
-    releaseYear: String,
-    revenue: Number,
-    runtime: Number,
-    spokenLanguages: [String],
-    status: String,
-    tagline: String,
-    title: String,
-    video: String,
-    voteAverage: Number,
-    voteCount: Number
-  });
-  return mongoose.model("Movie", movieSchema, "movies_v2");
-}();
+// const Movie = function createMovieModel() {
+//   setUpDBConnection();
+//   // adult|collection|budget|genres|homepage|id|imdbId|originalLanguage|originalTitle|overview|popularity|posterPath|productionCompanies
+//   // |productionCountries|releaseDate|revenue|runtime|spokenLanguages|status|tagline|title|video|voteAverage|voteCount
+//   const movieSchema = new mongoose.Schema({
+//     _id: String,
+//     adult: Boolean,
+//     collections: String,
+//     budget: Number,
+//     genres: [String],
+//     homepage: String,
+//     id: Number,
+//     originalTitle: String,
+//     originalLanguage: String,
+//     overview: String,
+//     popularity: Number,
+//     posterPath: String,
+//     productionCountries: [{ letterCode: String, name: String }],
+//     releaseDate: Date,
+//     releaseYear: String,
+//     revenue: Number,
+//     runtime: Number,
+//     spokenLanguages: [String],
+//     status: String,
+//     tagline: String,
+//     title: String,
+//     video: String,
+//     voteAverage: Number,
+//     voteCount: Number
+//   });
+//   return mongoose.model("Movie", movieSchema, "movies");
+// }();
+
+// mongoose
+// function setUpDBConnection() {
+//   // mongoose.connect('mongodb://localhost/moviesDB');
+//   // mongoose.connect('mongodb://nodejs:eELPHv5WuDQS@localhost/moviesDB');
+//   mongoose.connect('mongodb://nodejs:eELPHv5WuDQS@levkaratun.com/moviesDB');
+//   mongoose.Promise = global.Promise;
+//   const db = mongoose.connection;
+//   db.on('error', console.error.bind(console, 'connection error: '));
+// }
 
 
-function setUpDBConnection() {
-  // mongoose.connect('mongodb://localhost/moviesDB');
-  mongoose.connect('mongodb://nodejs:eELPHv5WuDQS@localhost/moviesDB');
-  mongoose.Promise = global.Promise;
-  const db = mongoose.connection;
-  db.on('error', console.error.bind(console, 'connection error: '));
-}
+
 
 router.get("/populate/:fileName", async (req, res) => {
   try {
@@ -131,14 +133,27 @@ router.get("/", async (req, res) => {
   catch (e) { console.log(e); }
 });
 
-async function listDistinctYears() {
-  const years = await Movie.distinct("releaseYear");
-  return years.filter(year => year != null).sort((a, b) => a - b);
+// mongoose
+// async function listDistinctYears() {
+//   const years = await Movie.distinct("releaseYear");
+//   return years.filter(year => year != null).sort((a, b) => a - b);
+// }
+
+// raw mongoDB driver
+function setUpDBConnection() {
+
+  const dbUrl = 'mongodb://nodejs:eELPHv5WuDQS@localhost:27017/moviesDB';
+  return MongoClient.connect(dbUrl);
 }
 
-
-
-
+// raw mongoDB driver
+async function listDistinctYears() {
+  return setUpDBConnection().then(client =>
+    client.db("moviesDB").collection('movies_v2')
+      .distinct("releaseYear", {})
+      .then(years => years.filter(year => year != null).sort((a, b) => a - b))
+  );
+}
 
 
 function findMoviesInYearsRange(startYear, endYear) {
@@ -329,5 +344,12 @@ function readTopNMoviesFromDB(movieCount) {
   const result = Movie.find().limit(movieCount);
   return result;
 }
+
+function to(promise) {
+  return promise.then(data => [null, data])
+    .catch(err => [err]);
+}
+
+
 
 module.exports = { listDistinctYears };
