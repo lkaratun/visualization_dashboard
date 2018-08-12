@@ -12,7 +12,8 @@ const https = require('https');
 
 const app = express();
 app.use(cors({
-  origin: ['http://localhost:1234', 'https://localhost:1234', 'http://levkaratun.com:1234', 'https://levkaratun.com']
+  origin: ['http://localhost:1234', 'https://localhost:1234', 'http://levkaratun.com:1234', 'https://levkaratun.com'],
+  credentials: true
 }));
 const router = express.Router();
 app.use("", router);
@@ -20,8 +21,10 @@ app.use("", router);
 //   app.listen(3000, () => console.log("App is running on port 3000"));
 // }
 https.createServer({
-  key: fs.readFileSync('server.key'),
-  cert: fs.readFileSync('server.cert')
+  // key: fs.readFileSync('server.key'),
+  // cert: fs.readFileSync('server.cert')
+  key: fs.readFileSync('private.pem'),
+  cert: fs.readFileSync('primary.crt')
 }, app)
   .listen(3000, () => console.log('Server is listening to https requests on port 3000'));
 

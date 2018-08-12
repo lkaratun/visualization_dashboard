@@ -38,7 +38,8 @@ const imgBaseUrl = 'https://image.tmdb.org/t/p/w154/';
 const imgBaseUrlLarge = 'https://image.tmdb.org/t/p/w185/';
 
 
-const backEndUrlBase = "https://localhost:3000";
+// const backEndUrlBase = "https://localhost:3000";
+const backEndUrlBase = "https://levkaratun.com:3000";
 
 window.onload = async function init() {
   // [mapData, countryCodes] = await Promise.all([d3.json('mapData.json'), d3.json('countryCodes.json')]);
@@ -113,7 +114,7 @@ function setUpYearSlider(minYear, maxYear) {
 function loadAndDisplayDataFromDB(options) {
   const [minYear, maxYear] = options.years;
   const requestURL = `${backEndUrlBase}/getMoviesByYear/${minYear}-${maxYear}`;
-  return fetch(requestURL, { credentials: 'omit' }).then(data => data.json());
+  return fetch(requestURL, { credentials: 'include' }).then(data => data.json());
 }
 
 async function refreshPlots(options) {
