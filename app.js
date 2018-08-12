@@ -37,16 +37,15 @@ const codeNumericToName = new Map();
 const imgBaseUrl = 'https://image.tmdb.org/t/p/w154/';
 const imgBaseUrlLarge = 'https://image.tmdb.org/t/p/w185/';
 
-const backEndUrlBase = "https://localhost:3000";
-// const backEndUrlBase = "https://levkaratun.com:3000";
 
+const backEndUrlBase = "https://localhost:3000";
 
 window.onload = async function init() {
   // [mapData, countryCodes] = await Promise.all([d3.json('mapData.json'), d3.json('countryCodes.json')]);
   // await loadAndDisplayDataFromFile();
 
   getListOfYearsFromDB().then(years => {
-    // setUpYearSlider(d3.min(years), d3.max(years));
+    setUpYearSlider(d3.min(years), d3.max(years));
   });
 
   // const movieCount = new Map();
