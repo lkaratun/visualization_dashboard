@@ -117,7 +117,6 @@ router.get("/getMoviesByYear/:startYear-:endYear", async (req, res) => {
 router.get("/years", async (req, res) => {
   try {
     const years = await listDistinctYears();
-    // console.log(years.length);
     res.json(years);
   }
   catch (e) { console.error(e); }
@@ -125,42 +124,33 @@ router.get("/years", async (req, res) => {
 
 router.get("/", async (req, res) => {
   try {
-    const movies = readTopNMoviesFromDB(20);
-    // console.log(movies[0].releaseDate.getFullYear());
-
+    const movies = await readTopNMoviesFromDB(20);
     res.json(movies);
   }
   catch (e) { console.log(e); }
 });
 
-// mongoose
-// async function listDistinctYears() {
-//   const years = await Movie.distinct("releaseYear");
-//   return years.filter(year => year != null).sort((a, b) => a - b);
-// }
 
 // raw mongoDB driver
-function setUpDBConnection() {
-
+const moviesCollectionPromise = (function setUpDBConnection() {
   const dbUrl = 'mongodb://nodejs:eELPHv5WuDQS@localhost:27017/moviesDB';
-  return MongoClient.connect(dbUrl);
-}
+  return MongoClient.connect(dbUrl).then(client => client.db("moviesDB").collection('movies_v2'));
+})();
 
 // raw mongoDB driver
 async function listDistinctYears() {
-  return setUpDBConnection().then(client =>
-    client.db("moviesDB").collection('movies_v2')
-      .distinct("releaseYear", {})
-      .then(years => years.filter(year => year != null).sort((a, b) => a - b))
-  );
+  const moviesCollection = await moviesCollectionPromise;
+  const years = await moviesCollection.distinct("releaseYear", {});
+  return years.filter(year => year != null).sort((a, b) => a - b);
 }
 
-
-function findMoviesInYearsRange(startYear, endYear) {
+async function findMoviesInYearsRange(startYear, endYear) {
   const startDate = new Date(`${startYear}-01-01`);
   const endDate = new Date(`${endYear}-12-31`);
   const query = { releaseDate: { "$gte": startDate, "$lte": endDate } };
-  return Movie.find(query).lean(true);
+  const moviesCollection = await moviesCollectionPromise;
+  const movies = await moviesCollection.find(query).toArray();
+  return movies;
 }
 
 async function convertCsvToDsv(fileName) {
@@ -340,9 +330,9 @@ function convertArrayOfObjectsToString(data, args) {
   return result;
 }
 
-function readTopNMoviesFromDB(movieCount) {
-  const result = Movie.find().limit(movieCount);
-  return result;
+async function readTopNMoviesFromDB(movieCount) {
+  const moviesCollection = await moviesCollectionPromise;
+  return moviesCollection.find({}, { limit: movieCount }).toArray();
 }
 
 function to(promise) {
