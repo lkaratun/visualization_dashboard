@@ -37,8 +37,8 @@ const codeNumericToName = new Map();
 const imgBaseUrl = 'https://image.tmdb.org/t/p/w154/';
 const imgBaseUrlLarge = 'https://image.tmdb.org/t/p/w185/';
 
-// const backEndUrlBase = "https://localhost:3000";
-const backEndUrlBase = "http://levkaratun.com:3000";
+const backEndUrlBase = "https://localhost:3000";
+// const backEndUrlBase = "https://levkaratun.com:3000";
 
 
 window.onload = async function init() {
@@ -46,7 +46,7 @@ window.onload = async function init() {
   // await loadAndDisplayDataFromFile();
 
   getListOfYearsFromDB().then(years => {
-    setUpYearSlider(d3.min(years), d3.max(years));
+    // setUpYearSlider(d3.min(years), d3.max(years));
   });
 
   // const movieCount = new Map();
@@ -114,7 +114,7 @@ function setUpYearSlider(minYear, maxYear) {
 function loadAndDisplayDataFromDB(options) {
   const [minYear, maxYear] = options.years;
   const requestURL = `${backEndUrlBase}/getMoviesByYear/${minYear}-${maxYear}`;
-  return fetch(requestURL).then(data => data.json());
+  return fetch(requestURL, { credentials: 'omit' }).then(data => data.json());
 }
 
 async function refreshPlots(options) {
@@ -272,7 +272,7 @@ async function drawScatterPlot({ data, years }) {
           'left',
           `${d3.event.x /* - tooltip.node().offsetWidth/2 */ + 5}px`,
       )
-        .style('top', `${d3.event.y}px`);
+        .style('top', `${d3.event.pageY}px`);
     })
     .on('mouseout', () => tooltip.style('opacity', 0));
 
