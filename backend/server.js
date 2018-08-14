@@ -14,14 +14,11 @@ app.use(cors({
 }));
 const router = express.Router();
 app.use("", router);
-// if (process.env.NODE_ENV !== 'test') {
-//   app.listen(3000, () => console.log("App is running on port 3000"));
-// }
+
+const { keyPath, certPath } = process.env;
 https.createServer({
-  // key: fs.readFileSync('server.key'),
-  // cert: fs.readFileSync('server.cert')
-  key: fs.readFileSync('private.pem'),
-  cert: fs.readFileSync('primary.crt')
+  key: fs.readFileSync(keyPath),
+  cert: fs.readFileSync(certPath)
 }, app)
   .listen(3000, () => console.log('Server is listening to https requests on port 3000'));
 
