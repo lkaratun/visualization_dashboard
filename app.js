@@ -97,7 +97,7 @@ function setUpYearSlider(minYear, maxYear) {
   range.noUiSlider.on('set', async (values) => {
     // Convert from string to int
     yearsChosen = values.map(d => Math.round(+d));
-    yearData = await loadAndDisplayDataFromDB({ years: [yearsChosen[0], yearsChosen[1]] });
+    yearData = await loadDataFromDB({ years: [yearsChosen[0], yearsChosen[1]] });
     refreshPlots({ data: yearData, years: yearsChosen, countries: countriesChosen });
   });
   // When the input changes, set the slider value
@@ -111,7 +111,7 @@ function setUpYearSlider(minYear, maxYear) {
   });
 }
 
-function loadAndDisplayDataFromDB(options) {
+function loadDataFromDB(options) {
   const [minYear, maxYear] = options.years;
   const requestURL = `${backEndUrlBase}/getMoviesByYear/${minYear}-${maxYear}`;
   return fetch(requestURL, { credentials: 'include' }).then(data => data.json());
@@ -119,7 +119,11 @@ function loadAndDisplayDataFromDB(options) {
 
 async function refreshPlots(options) {
   const { years, countries } = options;
-  yearData = await loadAndDisplayDataFromDB({ years });
+  yearData = await loadDataFromDB({ years });
+  yearData.forEach(d => {
+    if (typeof d.voteAverage === "object") { d.voteAverage = +d.voteAverage.$numberDouble; }
+    if (typeof d.popularity === "object") { d.popularity = +d.popularity.$numberDouble; }
+  });
 
   if (countries.length) {
     filteredData = yearData.filter(movie =>
@@ -130,6 +134,7 @@ async function refreshPlots(options) {
   else {
     filteredData = yearData;
   }
+  filteredData = filteredData.filter(d => d[xDataSelector] && d[yDataSelector] && d[rDataSelector]);
 
   drawScatterPlot({ data: filteredData, years });
   drawMap({ data: filteredData });
@@ -137,6 +142,8 @@ async function refreshPlots(options) {
 }
 
 async function drawScatterPlot({ data, years }) {
+  console.log(data);
+
   const scatterPlot = d3
     .select('#scatterPlot')
     .attr('width', svgWidth)
@@ -167,6 +174,8 @@ async function drawScatterPlot({ data, years }) {
     .scaleLinear()
     .domain(d3.extent(data, d => d[rDataSelector]))
     .range([3, 12]);
+  window.radiusScale = radiusScale;
+  window.data = data;
 
   scatterPlot.selectAll('g').remove();
 
@@ -226,6 +235,7 @@ async function drawScatterPlot({ data, years }) {
     .attr('font-size', '1em')
     .attr('text-anchor', 'middle');
 
+  // console.log(yDataSelector);
   // Data points
   points
     .enter()
@@ -233,8 +243,11 @@ async function drawScatterPlot({ data, years }) {
     .attr('cx', d => (d[xDataSelector] ? xScale(d[xDataSelector]) : padding))
     .attr(
       'cy',
-      d => (d[yDataSelector] ? yScale(d[yDataSelector]) : svgHeight - padding),
-  )
+      d =>
+        // console.log(d);
+        (d[yDataSelector] ? yScale(d[yDataSelector]) : svgHeight - padding)
+
+    )
     .merge(points)
     // .transition()
     // .duration(300)
@@ -249,11 +262,11 @@ async function drawScatterPlot({ data, years }) {
     // .attr("r", 10)
     .attr(
       'r',
-      d =>
-        (d[rDataSelector] && d[yDataSelector] && d[xDataSelector]
-          ? radiusScale(d[rDataSelector])
-          : 0),
-  );
+      d => radiusScale(d[rDataSelector])
+      // (d[rDataSelector] && d[yDataSelector] && d[xDataSelector]
+      //   ? radiusScale(d[rDataSelector])
+      //   : 0),
+    );
 
   window.points = points;
   points.moveToFront();
