@@ -1,9 +1,6 @@
-// const to = require("await-to-js");
-// import to from 'await-to-js';
 const { MongoClient } = require('mongodb');
+require('dotenv').load();
 
-
-const mongoose = require("mongoose");
 const csvtojson = require("csvtojson");
 const express = require("express");
 const fs = require('fs');
@@ -28,48 +25,6 @@ https.createServer({
 }, app)
   .listen(3000, () => console.log('Server is listening to https requests on port 3000'));
 
-// const Movie = function createMovieModel() {
-//   setUpDBConnection();
-//   // adult|collection|budget|genres|homepage|id|imdbId|originalLanguage|originalTitle|overview|popularity|posterPath|productionCompanies
-//   // |productionCountries|releaseDate|revenue|runtime|spokenLanguages|status|tagline|title|video|voteAverage|voteCount
-//   const movieSchema = new mongoose.Schema({
-//     _id: String,
-//     adult: Boolean,
-//     collections: String,
-//     budget: Number,
-//     genres: [String],
-//     homepage: String,
-//     id: Number,
-//     originalTitle: String,
-//     originalLanguage: String,
-//     overview: String,
-//     popularity: Number,
-//     posterPath: String,
-//     productionCountries: [{ letterCode: String, name: String }],
-//     releaseDate: Date,
-//     releaseYear: String,
-//     revenue: Number,
-//     runtime: Number,
-//     spokenLanguages: [String],
-//     status: String,
-//     tagline: String,
-//     title: String,
-//     video: String,
-//     voteAverage: Number,
-//     voteCount: Number
-//   });
-//   return mongoose.model("Movie", movieSchema, "movies");
-// }();
-
-// mongoose
-// function setUpDBConnection() {
-//   // mongoose.connect('mongodb://localhost/moviesDB');
-//   // mongoose.connect('mongodb://nodejs:eELPHv5WuDQS@localhost/moviesDB');
-//   mongoose.connect('mongodb://nodejs:eELPHv5WuDQS@levkaratun.com/moviesDB');
-//   mongoose.Promise = global.Promise;
-//   const db = mongoose.connection;
-//   db.on('error', console.error.bind(console, 'connection error: '));
-// }
 
 
 
@@ -136,8 +91,10 @@ router.get("/", async (req, res) => {
 
 // raw mongoDB driver
 const moviesCollectionPromise = (function setUpDBConnection() {
-  const dbUrl = 'mongodb://nodejs:eELPHv5WuDQS@localhost:27017/moviesDB';
-  return MongoClient.connect(dbUrl).then(client => client.db("moviesDB").collection('movies_v2'));
+  console.log(process.env.dbUserName);
+  const dbUrl = `mongodb://${process.env.dbUserName}:${process.env.dbPassword}@localhost:27017/moviesDB`;
+  return MongoClient.connect(dbUrl).then(client => client.db("moviesDB").collection('movies'))
+    .catch(err => console.log(err));
 })();
 
 // raw mongoDB driver

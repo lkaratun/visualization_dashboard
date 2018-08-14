@@ -3,3 +3,9 @@ node_modules_backup/*
 IMDB
 dist
 .cache
+.env
+*.crt
+*.pem
+*.csr
+*.key
+*.cert
