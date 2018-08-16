@@ -146,6 +146,19 @@ async function drawScatterPlot({ data, years }) {
     .attr('width', svgWidth)
     .attr('height', svgHeight);
 
+  if (data.length === 0) {
+    removeOldElements(scatterPlot);
+    scatterPlot
+      .append("text")
+      .classed("placeholder", true)
+      .text("No data points to display")
+      .attr("x", svgWidth / 2)
+      .attr("y", svgHeight / 2)
+      .attr("text-anchor", "middle")
+      .attr("font-weight", 700);
+    return;
+  }
+
   const xScale = d3
     .scaleLinear()
     .domain(d3.extent(data, d => d[xDataSelector]))
@@ -171,18 +184,8 @@ async function drawScatterPlot({ data, years }) {
     .scaleLinear()
     .domain(d3.extent(data, d => d[rDataSelector]))
     .range([3, 12]);
-  window.radiusScale = radiusScale;
-  window.data = data;
 
-  scatterPlot.selectAll('g').remove();
-
-  scatterPlot.selectAll('text').remove();
-
-  scatterPlot
-    .selectAll('circle')
-    .data(data) // , d => d.id)
-    .exit()
-    .remove();
+  removeOldElements(scatterPlot);
 
   // Draw axes
   scatterPlot
@@ -283,6 +286,16 @@ async function drawScatterPlot({ data, years }) {
   scatterPlot.selectAll('circle').on('click', (d) => {
     displayMovieInfo(d.id);
   });
+
+  function removeOldElements(selection) {
+    selection.selectAll('g').remove();
+    selection.selectAll('text').remove();
+    selection
+      .selectAll('circle')
+      .data(data) // , d => d.id)
+      .exit()
+      .remove();
+  }
 } // DrawScatterPlot
 
 async function drawMap({ data }) {
@@ -475,6 +488,7 @@ async function drawMap({ data }) {
 } // drawMap
 
 function drawBarChart({ data }) {
+  const barChart = d3.select('#barChart');
   // Count number of movies per genre for a given countryId
   let genreData = new Map();
   data.forEach((movie) => {
@@ -482,44 +496,69 @@ function drawBarChart({ data }) {
       genreData.set(genre, genreData.get(genre) + 1 || 1);
     });
   });
-
-  const paddingBottom = 10;
-  const yScale = d3
-    .scaleLinear()
-    .domain([0, d3.max(Array.from(genreData.values()))])
-    .range([svgHeight, paddingBottom + padding]);
-  const yAxis = d3
-    .axisLeft(yScale)
-    .tickSize(padding / 3)
-    .tickFormat(e => (Math.floor(e) === e ? e : undefined));
-  // .tickSizeOuter(0);
-
   genreData = Array.from(genreData).sort((a, b) => b[1] - a[1]);
   const barPadding = 3;
   const barWidth = Math.min(
     (svgWidth - padding * 2) / genreData.length - barPadding,
     svgWidth / 10,
   );
-  // make tallest bar equal svgHeight
-  // const barHeightPerOccurrence =
-  //   (svgHeight - 2 * padding) / d3.max(genreData, d => d[1]);
-
-  const bars = d3
-    .select('#barChart')
+  const bars = barChart
     .attr('width', svgWidth)
     .attr('height', svgHeight)
     .selectAll('.bar')
     .data(genreData, d => d[0]);
 
-  const barLabels = d3
-    .select('#barChart')
+  const barLabels = barChart
     .selectAll('.barLabel')
     .data(genreData, d => d[0]);
 
+  if (data.length === 0) {
+    barLabels.remove();
+    bars.remove();
+    barChart
+      .selectAll('g')
+      .remove();
+    barChart
+      .selectAll('rect')
+      .remove();
+    barChart
+      .selectAll('text')
+      .remove();
+
+    barChart
+      .append("text")
+      .classed("placeholder", true)
+      .text("No data points to display")
+      .attr("x", svgWidth / 2)
+      .attr("y", svgHeight / 2)
+      .attr("text-anchor", "middle")
+      .attr("font-weight", 700);
+    return;
+  }
+
+  const paddingBottom = 10;
+  const yScale = d3
+    .scaleLinear()
+    .domain([0, d3.max(genreData, d => d[1])])
+    .range([svgHeight, paddingBottom + padding]);
+
+
+  const yAxis = d3
+    .axisLeft(yScale)
+    .tickSize(padding / 3)
+    .tickFormat(e => (Math.floor(e) === e ? e : undefined));
+  // .tickSizeOuter(0);
+
+
+
+
   barLabels.exit().remove();
   bars.exit().remove();
-  d3.select('#barChart')
+  barChart
     .selectAll('g')
+    .remove();
+  barChart
+    .selectAll('.placeholder')
     .remove();
 
   // Bars
@@ -546,14 +585,10 @@ function drawBarChart({ data }) {
     .attr('y', (d, i) => padding + (barWidth + barPadding) * i + barWidth / 1.5)
     .attr('x', -svgHeight + paddingBottom * 2);
 
-  // Plot label
-  // const countryName = codeNumericToName.has(countries)
-  //   ? ` filmed in ${codeNumericToName.get(countries)}`
-  //   : '';
-  d3.select('#barChart')
+  barChart
     .selectAll('.plotLabel')
     .remove();
-  d3.select('#barChart')
+  barChart
     .append('text')
     .classed('plotLabel', true)
     .text(`Number of movies per genre`)
@@ -565,7 +600,7 @@ function drawBarChart({ data }) {
   // .attr("alignment-baseline", "mathematical");
 
   // Left axis
-  d3.select('#barChart')
+  barChart
     .append('g')
     .call(yAxis)
     .attr('transform', `translate (${padding}, ${-paddingBottom})`);
