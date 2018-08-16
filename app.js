@@ -355,6 +355,15 @@ async function drawMap({ data }) {
 
 
   // Tooltips and click actions
+  d3.select('#worldMap')
+    .on('click', (d) => {
+      if (d3.event.target.id === "worldMap") {
+        // clear countries selected
+        countriesChosen = [];
+        refreshPlots({ years: yearsChosen, countries: countriesChosen });
+      }
+    });
+
   const tooltip = d3.select('.tooltip');
   d3.select('#worldMap')
     .selectAll('.country')
