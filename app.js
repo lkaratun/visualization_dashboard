@@ -116,6 +116,12 @@ function loadDataFromDB(options) {
   const requestURL = `${backEndUrlBase}/getMoviesByYear/${minYear}-${maxYear}`;
   return fetch(requestURL, { credentials: 'include' }).then(data => data.json());
 }
+function getMovieDetails(id) {
+  const requestURL = `${backEndUrlBase}/getMovieById/${id}`;
+  return fetch(requestURL, { credentials: 'include' }).then(data => data.json());
+}
+
+
 
 async function refreshPlots(options) {
   const { years, countries } = options;
@@ -123,6 +129,7 @@ async function refreshPlots(options) {
   yearData.forEach(d => {
     if (typeof d.voteAverage === "object") { d.voteAverage = +d.voteAverage.$numberDouble; }
     if (typeof d.popularity === "object") { d.popularity = +d.popularity.$numberDouble; }
+    // if (typeof d.budget === "object") { d.budget = +d.budget.$numberDouble; }
   });
 
   if (countries.length) {
@@ -135,7 +142,6 @@ async function refreshPlots(options) {
     filteredData = yearData;
   }
   filteredData = filteredData.filter(d => d[xDataSelector] && d[yDataSelector] && d[rDataSelector]);
-
   drawScatterPlot({ data: filteredData, years });
   drawMap({ data: filteredData });
   drawBarChart({ data: filteredData });
@@ -345,7 +351,6 @@ async function drawMap({ data }) {
       'fill',
       d => {
         if (!d.properties.movies.length) { return defaultCountryFillColor; }
-        // if (countriesChosen.includes(codeNumericToLetter.get(d.id))) { return colorScaleHighlighted(d.properties.movies.length); }
         return colorScale(d.properties.movies.length);
       })
     .attr("stroke", d => countriesChosen.includes(codeNumericToLetter.get(d.id)) ? "#444444" : "blue")
@@ -583,8 +588,9 @@ function drawBarChart({ data }) {
     .attr('transform', `translate (${padding}, ${-paddingBottom})`);
 } // drawBarChart
 
-function displayMovieInfo(id) {
-  const [movie] = yearData.filter(d => d.id === id);
+async function displayMovieInfo(id) {
+  const movie = await getMovieDetails(id);
+
   const budget = movie.budget
     .toLocaleString('en-US', { style: 'currency', currency: 'USD' })
     .slice(0, -3);

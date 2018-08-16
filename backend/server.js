@@ -1,6 +1,6 @@
 const { MongoClient } = require('mongodb');
 require('dotenv').load();
-
+const compression = require('compression');
 const csvtojson = require("csvtojson");
 const express = require("express");
 const fs = require('fs');
@@ -14,6 +14,8 @@ app.use(cors({
 }));
 const router = express.Router();
 app.use("", router);
+app.use(compression());
+
 
 const { keyPath, certPath } = process.env;
 https.createServer({
@@ -55,15 +57,27 @@ router.get("/convert/:fileName", async (req, res) => {
 
 router.get("/getMoviesByYear/:startYear-:endYear", async (req, res) => {
   try {
-    // res.send(req.params);
     const [err, movies] = await to(findMoviesInYearsRange(req.params.startYear, req.params.endYear));
     if (err) {
       console.error(err);
       res.send(err);
     }
     else {
-      // console.log("Success");
       res.send(movies);
+    };
+  }
+  catch (e) { console.log(e); }
+});
+
+router.get("/getMovieById/:id", async (req, res) => {
+  try {
+    const [err, movie] = await to(findMovieById(+req.params.id));
+    if (err) {
+      console.error(err);
+      res.send(err);
+    }
+    else {
+      res.send(movie);
     };
   }
   catch (e) { console.log(e); }
@@ -86,6 +100,8 @@ router.get("/", async (req, res) => {
 });
 
 
+
+
 // raw mongoDB driver
 const moviesCollectionPromise = (function setUpDBConnection() {
   console.log(process.env.dbUserName);
@@ -105,9 +121,19 @@ async function findMoviesInYearsRange(startYear, endYear) {
   const startDate = new Date(`${startYear}-01-01`);
   const endDate = new Date(`${endYear}-12-31`);
   const query = { releaseDate: { "$gte": startDate, "$lte": endDate } };
+  const projection = {
+    voteAverage: 1, budget: 1, productionCountries: 1,
+    releaseDate: 1, releaseYear: 1, popularity: 1, genres: 1, title: 1, posterPath: 1,
+    id: 1
+  };
   const moviesCollection = await moviesCollectionPromise;
-  const movies = await moviesCollection.find(query).toArray();
-  return movies;
+  return moviesCollection.find(query, { projection }).toArray();
+}
+
+async function findMovieById(id) {
+  const query = { id };
+  const moviesCollection = await moviesCollectionPromise;
+  return moviesCollection.findOne(query);
 }
 
 async function convertCsvToDsv(fileName) {
