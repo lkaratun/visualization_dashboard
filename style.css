@@ -23,16 +23,6 @@
 	max-width: 168px;
 }
 
-/*.tooltip:after {
-	content: '  ';
-	position: absolute;
-	border: 12px solid transparent;
-	border-top-color: blue;
-	top: 52px;
-	left: 48%;
-	margin-left: -6px;
-}*/
-
 #slider, svg  {
 	display: block;
 }
@@ -41,12 +31,9 @@
 	fill: black;
 	transform: rotate(-90deg);
 	stroke:#000000;
-	/*stroke-width:1px*/
 	text-anchor: start;
 	font-family: 'Lato', sans-serif;
 	font-weight: lighter;
-	/* font-size: 3em; */
-	alignment-baseline: middle;
 }
 
 #movieInfo, .plot {
@@ -79,13 +66,32 @@
     text-align: center;
 }
 #range {
-    width: 30vw;
+    width: 60vw;
     margin: 0 auto;
 }
 
 #range > .noUi-pips-horizontal{
 	height: 0px;
 	margin: 0px;
+}
+
+.noUi-horizontal .noUi-handle {
+	width: 22px;
+	height: 20px;
+	left: -11px;
+	top: -4px;
+}
+.noUi-handle:before,
+.noUi-handle:after {
+  height: 10px;
+  width: 1px;
+  left: 10px;
+  top: 5px;
+}
+
+
+div#range.noUi-target {
+	height: 12px;
 }
 
 #yearInput1, #yearInput2 {
