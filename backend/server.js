@@ -120,7 +120,12 @@ async function listDistinctYears() {
 async function findMoviesInYearsRange(startYear, endYear) {
   const startDate = new Date(`${startYear}-01-01`);
   const endDate = new Date(`${endYear}-12-31`);
-  const query = { releaseDate: { "$gte": startDate, "$lte": endDate } };
+  const query = {
+    releaseDate: { "$gte": startDate, "$lte": endDate },
+    budget: { $exists: true },
+    voteAverage: { $exists: true },
+    popularity: { $exists: true }
+  };
   const projection = {
     voteAverage: 1, budget: 1, productionCountries: 1,
     releaseDate: 1, releaseYear: 1, popularity: 1, genres: 1, title: 1, posterPath: 1,
