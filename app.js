@@ -11,7 +11,6 @@ const d3 = require("d3");
 
 window.colorbrewer = colorbrewer;
 
-let filteredData;
 const svgWidth = 600;
 const svgHeight = 400;
 const padding = 40;
@@ -29,7 +28,6 @@ const rDataSelector = 'popularity';
 const cDataSelector = 'runtime';
 const xLabel = 'Movie budget';
 const yLabel = 'Viewer rating';
-let yearData;
 const codeLetterToNumeric = new Map();
 const codeNumericToLetter = new Map();
 const codeNumericToName = new Map();
@@ -42,16 +40,15 @@ const backEndUrlBase = "https://localhost:3000";
 // const backEndUrlBase = "https://levkaratun.com:3000";
 
 window.onload = async function init() {
-  // [mapData, countryCodes] = await Promise.all([d3.json('mapData.json'), d3.json('countryCodes.json')]);
-  // await loadAndDisplayDataFromFile();
-
   getListOfYearsFromDB().then(years => {
     setUpYearSlider(d3.min(years), d3.max(years));
   });
 
-  // const movieCount = new Map();
-  // allData.forEach(d =>
-  //   movieCount.set(d.year, movieCount.get(d.year) + 1 || 1));
+  countryCodes.forEach((d) => {
+    codeLetterToNumeric.set(d['alpha-2'], d['country-code']);
+    codeNumericToLetter.set(d['country-code'], d['alpha-2']);
+    codeNumericToName.set(d['country-code'], d.name);
+  });
 
   refreshPlots({ years: [initialMinYear, initialMaxYear], countries: countriesChosen });
 
@@ -60,7 +57,7 @@ window.onload = async function init() {
 
 function getListOfYearsFromDB() {
   const requestURL = `${backEndUrlBase}/years`;
-  return fetch(requestURL).then(data => data.json()).then(years => years.map(d => +d));
+  return fetch(requestURL).then(res => res.json()).then(years => years.map(d => +d));
 }
 
 function setUpYearSlider(minYear, maxYear) {
@@ -97,8 +94,8 @@ function setUpYearSlider(minYear, maxYear) {
   range.noUiSlider.on('set', async (values) => {
     // Convert from string to int
     yearsChosen = values.map(d => Math.round(+d));
-    yearData = await loadDataFromDB({ years: [yearsChosen[0], yearsChosen[1]] });
-    refreshPlots({ data: yearData, years: yearsChosen, countries: countriesChosen });
+    // data = await loadDataFromDB({ years: [yearsChosen[0], yearsChosen[1]] });
+    refreshPlots({ years: yearsChosen, countries: countriesChosen });
   });
   // When the input changes, set the slider value
   yearInputs[0].addEventListener('change', function () {
@@ -114,37 +111,33 @@ function setUpYearSlider(minYear, maxYear) {
 function loadDataFromDB(options) {
   const [minYear, maxYear] = options.years;
   const requestURL = `${backEndUrlBase}/getMoviesByYear/${minYear}-${maxYear}`;
-  return fetch(requestURL, { credentials: 'include' }).then(data => data.json());
+  return fetch(requestURL, { credentials: 'include' }).then(res => res.json());
 }
 function getMovieDetails(id) {
   const requestURL = `${backEndUrlBase}/getMovieById/${id}`;
-  return fetch(requestURL, { credentials: 'include' }).then(data => data.json());
+  return fetch(requestURL, { credentials: 'include' }).then(res => res.json());
 }
 
 
 
 async function refreshPlots(options) {
   const { years, countries } = options;
-  yearData = await loadDataFromDB({ years });
-  yearData.forEach(d => {
+  let data = await loadDataFromDB({ years });
+  data.forEach(d => {
     if (typeof d.voteAverage === "object") { d.voteAverage = +d.voteAverage.$numberDouble; }
     if (typeof d.popularity === "object") { d.popularity = +d.popularity.$numberDouble; }
-    // if (typeof d.budget === "object") { d.budget = +d.budget.$numberDouble; }
   });
 
   if (countries.length) {
-    filteredData = yearData.filter(movie =>
+    data = data.filter(movie =>
       countries.some(filteredCountry =>
         movie.productionCountries.some(productionCountry =>
           productionCountry.letterCode === filteredCountry)));
   }
-  else {
-    filteredData = yearData;
-  }
-  filteredData = filteredData.filter(d => d[xDataSelector] && d[yDataSelector] && d[rDataSelector]);
+  const filteredData = data.filter(d => d[xDataSelector] && d[yDataSelector] && d[rDataSelector]);
   drawScatterPlot({ data: filteredData, years });
-  drawMap({ data: filteredData });
-  drawBarChart({ data: filteredData });
+  drawMap({ data });
+  drawBarChart({ data });
 }
 
 async function drawScatterPlot({ data, years }) {
@@ -201,7 +194,7 @@ async function drawScatterPlot({ data, years }) {
     .call(yAxis)
     .attr('transform', `translate (${padding}, 0)`);
 
-  const points = scatterPlot.selectAll('circle').data(filteredData); // , d => d.id);
+  const points = scatterPlot.selectAll('circle').data(data); // , d => d.id);
 
   const [startYear, endYear] = years;
   const yearsText = startYear === endYear ? `${yLabel} vs ${xLabel} (${startYear})` : `${yLabel} vs ${xLabel} (${startYear} - ${endYear})`;
@@ -259,19 +252,14 @@ async function drawScatterPlot({ data, years }) {
       'cy',
       d => (d[yDataSelector] ? yScale(d[yDataSelector]) : svgHeight - padding),
   )
-    // .attr("fill", d => d[cDataSelector] ? colorScale(d[cDataSelector]) : "#e1e1d0")
     .attr('fill', '#444444')
-    // .attr("r", 10)
     .attr(
       'r',
       d => radiusScale(d[rDataSelector])
-      // (d[rDataSelector] && d[yDataSelector] && d[xDataSelector]
-      //   ? radiusScale(d[rDataSelector])
-      //   : 0),
     );
 
   window.points = points;
-  points.moveToFront();
+  points.raise();
 
   // tooltips
   const tooltip = d3.select('.tooltip');
@@ -298,11 +286,7 @@ async function drawScatterPlot({ data, years }) {
 } // DrawScatterPlot
 
 async function drawMap({ data }) {
-  countryCodes.forEach((d) => {
-    codeLetterToNumeric.set(d['alpha-2'], d['country-code']);
-    codeNumericToLetter.set(d['country-code'], d['alpha-2']);
-    codeNumericToName.set(d['country-code'], d.name);
-  });
+
   const geoData = topojson.feature(mapData, mapData.objects.countries).features;
   geoData.forEach(d => {
     d.properties = {
@@ -423,7 +407,6 @@ async function drawMap({ data }) {
 
   await d3.select('#worldMap')
     .selectAll('g')
-    // .classed("y axis")
     .remove();
 
   const legend = d3
@@ -560,7 +543,7 @@ function drawBarChart({ data }) {
     .classed('barLabel', true)
     .merge(barLabels)
     .text(d => d[0])
-    .attr('y', (d, i) => padding + (barWidth + barPadding) * i + barWidth / 2)
+    .attr('y', (d, i) => padding + (barWidth + barPadding) * i + barWidth / 1.5)
     .attr('x', -svgHeight + paddingBottom * 2);
 
   // Plot label
