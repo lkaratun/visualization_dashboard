@@ -38,8 +38,8 @@ const imgBaseUrl = 'https://image.tmdb.org/t/p/w154/';
 const imgBaseUrlLarge = 'https://image.tmdb.org/t/p/w185/';
 
 
-// const backEndUrlBase = "https://localhost:3000";
-const backEndUrlBase = "https://levkaratun.com:3000";
+const backEndUrlBase = "https://localhost:3000";
+// const backEndUrlBase = "https://levkaratun.com:3000";
 
 window.onload = async function init() {
   // [mapData, countryCodes] = await Promise.all([d3.json('mapData.json'), d3.json('countryCodes.json')]);
@@ -142,8 +142,6 @@ async function refreshPlots(options) {
 }
 
 async function drawScatterPlot({ data, years }) {
-  console.log(data);
-
   const scatterPlot = d3
     .select('#scatterPlot')
     .attr('width', svgWidth)
@@ -235,7 +233,6 @@ async function drawScatterPlot({ data, years }) {
     .attr('font-size', '1em')
     .attr('text-anchor', 'middle');
 
-  // console.log(yDataSelector);
   // Data points
   points
     .enter()
@@ -244,7 +241,6 @@ async function drawScatterPlot({ data, years }) {
     .attr(
       'cy',
       d =>
-        // console.log(d);
         (d[yDataSelector] ? yScale(d[yDataSelector]) : svgHeight - padding)
 
     )
@@ -296,12 +292,6 @@ async function drawScatterPlot({ data, years }) {
 } // DrawScatterPlot
 
 async function drawMap({ data }) {
-  // const mapData = await d3.json('mapData.json');
-  // // File containing country codes, particularly letter and numeric versions
-  // const countryCodes = await d3.json('countryCodes.json');
-  // // Hashmap to convert letter country code to numeric
-  // const [mapData, countryCodes] = await Promise.all([d3.json('mapData.json'), d3.json('countryCodes.json')]);
-
   countryCodes.forEach((d) => {
     codeLetterToNumeric.set(d['alpha-2'], d['country-code']);
     codeNumericToLetter.set(d['country-code'], d['alpha-2']);
@@ -314,7 +304,6 @@ async function drawMap({ data }) {
     };
   });
 
-
   // Fill geoData with Movies data
   data.forEach(row => {
     const countries = geoData.filter(geoDataEntry =>
@@ -323,18 +312,12 @@ async function drawMap({ data }) {
     countries.forEach(country => country.properties.movies.push(row));
   });
 
-
   colorScale = d3
     .scaleLinear()
     .domain(d3.extent(geoData, d => d.properties.movies.length))
     .range([colorbrewer.Blues[5][0], colorbrewer.Blues[5][4]]);
 
-  const colorScaleHighlighted = d3
-    .scaleLinear()
-    .domain(d3.extent(geoData, d => d.properties.movies.length))
-    .range([colorbrewer.OrRd[5][0], colorbrewer.OrRd[5][4]]);
-
-  const projection = d3 // d3.geoMercator()
+  const projection = d3
     .geoNaturalEarth1()
     .scale(120)
     .translate([svgWidth * 0.45, svgHeight * 0.5]);
@@ -362,9 +345,11 @@ async function drawMap({ data }) {
       'fill',
       d => {
         if (!d.properties.movies.length) { return defaultCountryFillColor; }
-        if (countriesChosen.includes(codeNumericToLetter.get(d.id))) { return colorScaleHighlighted(d.properties.movies.length); }
+        // if (countriesChosen.includes(codeNumericToLetter.get(d.id))) { return colorScaleHighlighted(d.properties.movies.length); }
         return colorScale(d.properties.movies.length);
-      });
+      })
+    .attr("stroke", d => countriesChosen.includes(codeNumericToLetter.get(d.id)) ? "#444444" : "blue")
+    .attr("stroke-width", d => countriesChosen.includes(codeNumericToLetter.get(d.id)) ? "1px" : "0");
 
 
   // Tooltips and click actions
@@ -411,14 +396,30 @@ async function drawMap({ data }) {
     .append('text')
     .text('Number of movies per country')
     .attr('x', svgWidth / 2)
-    .attr('y', padding)
-    .attr('dy', '-0.75em')
+    .attr('y', 0)
+    .attr('dy', '0.75em')
     .attr('font-size', '1.2em')
     .attr('text-anchor', 'middle');
+
+  // Bottom note
+  d3.select('#worldMap')
+    .append('text')
+    .text('(click to filter by country, shift+click to select multiple countries)')
+    .attr('x', svgWidth / 2)
+    .attr('y', 0)
+    .attr('dy', '2.4em')
+    .attr('font-size', '0.7em')
+    .attr('text-anchor', 'middle');
+
 
   // Color legend (gradient)
   const legendWidth = svgWidth * 0.8;
   const legendHeight = 50;
+
+  await d3.select('#worldMap')
+    .selectAll('g')
+    // .classed("y axis")
+    .remove();
 
   const legend = d3
     .select('#worldMap')
@@ -474,6 +475,8 @@ async function drawMap({ data }) {
     .axisBottom()
     .scale(y)
     .ticks(5);
+
+
 
   d3.select('#worldMap')
     .append('g')

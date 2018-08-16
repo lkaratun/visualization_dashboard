@@ -9,3 +9,7 @@ dist
 *.csr
 *.key
 *.cert
+app.babel.js
+movies_metadata.csv
+movies_metadata_orig.csv
+info.txt
