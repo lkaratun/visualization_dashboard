@@ -322,8 +322,8 @@ async function drawMap({ data }) {
 
   const projection = d3
     .geoNaturalEarth1()
-    .scale(120)
-    .translate([svgWidth * 0.45, svgHeight * 0.5]);
+    .scale(140)
+    .translate([svgWidth * 0.47, svgHeight * 0.58]);
 
   const path = d3.geoPath().projection(projection);
 
