@@ -162,10 +162,11 @@ async function countMoviesPerCountryInYearsRange({ country, startYear, endYear }
     }
   };
   if (country !== "null") { match.$match["productionCountries.letterCode"] = country; };
+  const project = { $project: { _id: 0, productionCountries: 1 } };
   const unwind = { $unwind: "$productionCountries" };
   const group = { "$group": { _id: "$productionCountries.letterCode", count: { $sum: 1 } } };
   const moviesCollection = await moviesCollectionPromise;
-  return moviesCollection.aggregate([match, unwind, group]).toArray();
+  return moviesCollection.aggregate([match, project, unwind, group]).toArray();
 }
 
 async function findMovieById(id) {
