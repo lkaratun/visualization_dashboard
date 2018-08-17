@@ -1,6 +1,6 @@
 import * as countryCodesObj from "./countryCodes.json";
 import * as mapData from "./mapData.json";
-import "./moveTo";
+// import memoize from "promise-memoize";
 
 const countryCodes = Object.values(countryCodesObj);
 
@@ -108,11 +108,20 @@ function setUpYearSlider(minYear, maxYear) {
   });
 }
 
-function loadDataFromDB(options) {
+function loadScatterPlotDataFromDB(options) {
   const [minYear, maxYear] = options.years;
   const requestURL = `${backEndUrlBase}/getMoviesByYear/${minYear}-${maxYear}`;
   return fetch(requestURL, { credentials: 'include' }).then(res => res.json());
 }
+
+function loadMapDataFromDB({ countries, years }) {
+  const [startYear, endYear] = years;
+  let letterCodes = null;
+  if (countries.length) letterCodes = JSON.stringify(countries);
+  const requestURL = `${backEndUrlBase}/getCountByCountry/${letterCodes}/${startYear}-${endYear}`;
+  return fetch(requestURL, { credentials: 'include' }).then(res => res.json());
+}
+
 function getMovieDetails(id) {
   const requestURL = `${backEndUrlBase}/getMovieById/${id}`;
   return fetch(requestURL, { credentials: 'include' }).then(res => res.json());
@@ -120,24 +129,30 @@ function getMovieDetails(id) {
 
 
 
-async function refreshPlots(options) {
-  const { years, countries } = options;
-  let data = await loadDataFromDB({ years });
-  data.forEach(d => {
-    if (typeof d.voteAverage === "object") { d.voteAverage = +d.voteAverage.$numberDouble; }
-    if (typeof d.popularity === "object") { d.popularity = +d.popularity.$numberDouble; }
+async function refreshPlots({ years, countries }) {
+  // const scatterPlotDataPromise = memoize(async () => loadScatterPlotDataFromDB({ years }));
+  // const mapDataPromise = memoize(async () => loadMapDataFromDB({ countries, years }));
+  // const data = await scatterPlotDataPromise;
+
+  loadScatterPlotDataFromDB({ years }).then(data => {
+    data.forEach(d => {
+      if (typeof d.voteAverage === "object") { d.voteAverage = +d.voteAverage.$numberDouble; }
+      if (typeof d.popularity === "object") { d.popularity = +d.popularity.$numberDouble; }
+    });
+
+    if (countries.length) {
+      data = data.filter(movie =>
+        countries.some(filteredCountry =>
+          movie.productionCountries.some(productionCountry =>
+            productionCountry.letterCode === filteredCountry)));
+    }
+    data = data.filter(d => d[xDataSelector] && d[yDataSelector] && d[rDataSelector]);
+    drawScatterPlot({ data, years });
   });
 
-  if (countries.length) {
-    data = data.filter(movie =>
-      countries.some(filteredCountry =>
-        movie.productionCountries.some(productionCountry =>
-          productionCountry.letterCode === filteredCountry)));
-  }
-  const filteredData = data.filter(d => d[xDataSelector] && d[yDataSelector] && d[rDataSelector]);
-  drawScatterPlot({ data: filteredData, years });
-  drawMap({ data });
-  drawBarChart({ data });
+  loadMapDataFromDB({ countries, years }).then((data) => drawMap({ data }));
+
+  // drawBarChart({ data });
 }
 
 async function drawScatterPlot({ data, years }) {
@@ -299,25 +314,18 @@ async function drawScatterPlot({ data, years }) {
 } // DrawScatterPlot
 
 async function drawMap({ data }) {
-
   const geoData = topojson.feature(mapData, mapData.objects.countries).features;
   geoData.forEach(d => {
     d.properties = {
-      movies: [],
+      movies: 0,
     };
   });
-
-  // Fill geoData with Movies data
-  data.forEach(row => {
-    const countries = geoData.filter(geoDataEntry =>
-      row.productionCountries.some(productionCountry =>
-        codeLetterToNumeric.get(productionCountry.letterCode) === geoDataEntry.id));
-    countries.forEach(country => country.properties.movies.push(row));
-  });
+  const countryCodeToMovieCount = new Map();
+  data.forEach(country => countryCodeToMovieCount.set(country._id, country.count));
 
   colorScale = d3
     .scaleLinear()
-    .domain(d3.extent(geoData, d => d.properties.movies.length))
+    .domain(d3.extent(Array.from(countryCodeToMovieCount.values())))
     .range([colorbrewer.Blues[5][0], colorbrewer.Blues[5][4]]);
 
   const projection = d3
@@ -347,16 +355,20 @@ async function drawMap({ data }) {
     .attr(
       'fill',
       d => {
-        if (!d.properties.movies.length) { return defaultCountryFillColor; }
-        return colorScale(d.properties.movies.length);
-      })
+        const movieCount = countryCodeToMovieCount.get(codeNumericToLetter.get(d.id));
+        if (movieCount) {
+          return colorScale(movieCount);
+        }
+        return defaultCountryFillColor;
+      }
+    )
     .attr("stroke", d => countriesChosen.includes(codeNumericToLetter.get(d.id)) ? "#444444" : "blue")
     .attr("stroke-width", d => countriesChosen.includes(codeNumericToLetter.get(d.id)) ? "1px" : "0");
 
 
   // Tooltips and click actions
   d3.select('#worldMap')
-    .on('click', (d) => {
+    .on('click', () => {
       if (d3.event.target.id === "worldMap") {
         // clear countries selected
         countriesChosen = [];
