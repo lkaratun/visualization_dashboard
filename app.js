@@ -1,15 +1,10 @@
 import * as countryCodesObj from "./countryCodes.json";
 import * as mapData from "./mapData.json";
-// import memoize from "promise-memoize";
 
 const countryCodes = Object.values(countryCodesObj);
 
-window.mapData = mapData;
-
 const colorbrewer = require('colorbrewer');
 const d3 = require("d3");
-
-window.colorbrewer = colorbrewer;
 
 const svgWidth = 600;
 const svgHeight = 400;
@@ -18,7 +13,7 @@ const initialMinYear = 1950;
 const initialMaxYear = 1960;
 let sliderLow;
 let sliderHigh;
-let yearsChosen = [2017, 2017];
+let yearsChosen = [initialMinYear, initialMaxYear];
 let countriesChosen = [];
 
 let colorScale;
@@ -108,17 +103,27 @@ function setUpYearSlider(minYear, maxYear) {
   });
 }
 
-function loadScatterPlotDataFromDB(options) {
-  const [minYear, maxYear] = options.years;
-  const requestURL = `${backEndUrlBase}/getMoviesByYear/${minYear}-${maxYear}`;
+function loadScatterPlotDataFromDB({ years, countries }) {
+  const [startYear, endYear] = years;
+  let letterCodes = null;
+  if (countries.length) letterCodes = JSON.stringify(countries);
+  const requestURL = `${backEndUrlBase}/getScatterPlotData/${letterCodes}/${startYear}-${endYear}`;
   return fetch(requestURL, { credentials: 'include' }).then(res => res.json());
 }
 
-function loadMapDataFromDB({ countries, years }) {
+function loadMapDataFromDB({ years, countries }) {
   const [startYear, endYear] = years;
   let letterCodes = null;
   if (countries.length) letterCodes = JSON.stringify(countries);
   const requestURL = `${backEndUrlBase}/getCountByCountry/${letterCodes}/${startYear}-${endYear}`;
+  return fetch(requestURL, { credentials: 'include' }).then(res => res.json());
+}
+
+function loadBarChartDataFromDB({ years, countries }) {
+  const [startYear, endYear] = years;
+  let letterCodes = null;
+  if (countries.length) letterCodes = JSON.stringify(countries);
+  const requestURL = `${backEndUrlBase}/getBarChartData/${letterCodes}/${startYear}-${endYear}`;
   return fetch(requestURL, { credentials: 'include' }).then(res => res.json());
 }
 
@@ -130,29 +135,17 @@ function getMovieDetails(id) {
 
 
 async function refreshPlots({ years, countries }) {
-  // const scatterPlotDataPromise = memoize(async () => loadScatterPlotDataFromDB({ years }));
-  // const mapDataPromise = memoize(async () => loadMapDataFromDB({ countries, years }));
-  // const data = await scatterPlotDataPromise;
-
-  loadScatterPlotDataFromDB({ years }).then(data => {
+  loadScatterPlotDataFromDB({ years, countries }).then(data => {
     data.forEach(d => {
       if (typeof d.voteAverage === "object") { d.voteAverage = +d.voteAverage.$numberDouble; }
       if (typeof d.popularity === "object") { d.popularity = +d.popularity.$numberDouble; }
     });
 
-    if (countries.length) {
-      data = data.filter(movie =>
-        countries.some(filteredCountry =>
-          movie.productionCountries.some(productionCountry =>
-            productionCountry.letterCode === filteredCountry)));
-    }
-    data = data.filter(d => d[xDataSelector] && d[yDataSelector] && d[rDataSelector]);
     drawScatterPlot({ data, years });
   });
 
-  loadMapDataFromDB({ countries, years }).then((data) => drawMap({ data }));
-
-  // drawBarChart({ data });
+  loadMapDataFromDB({ years, countries }).then((data) => drawMap({ data }));
+  loadBarChartDataFromDB({ years, countries }).then((data) => drawBarChart({ data }));
 }
 
 async function drawScatterPlot({ data, years }) {
@@ -315,11 +308,7 @@ async function drawScatterPlot({ data, years }) {
 
 async function drawMap({ data }) {
   const geoData = topojson.feature(mapData, mapData.objects.countries).features;
-  geoData.forEach(d => {
-    d.properties = {
-      movies: 0,
-    };
-  });
+
   const countryCodeToMovieCount = new Map();
   data.forEach(country => countryCodeToMovieCount.set(country._id, country.count));
 
@@ -491,7 +480,7 @@ async function drawMap({ data }) {
   const y = d3
     .scaleLinear()
     .range([0, legendWidth])
-    .domain(d3.extent(geoData, d => d.properties.movies.length));
+    .domain(d3.extent(Array.from(countryCodeToMovieCount.values())));
 
   const yAxis = d3
     .axisBottom()
@@ -510,17 +499,15 @@ async function drawMap({ data }) {
 
 function drawBarChart({ data }) {
   const barChart = d3.select('#barChart');
-  // Count number of movies per genre for a given countryId
-  let genreData = new Map();
-  data.forEach((movie) => {
-    movie.genres.forEach((genre) => {
-      genreData.set(genre, genreData.get(genre) + 1 || 1);
-    });
-  });
-  genreData = Array.from(genreData).sort((a, b) => b[1] - a[1]);
+
+  // Number of movies per genre
+  const genreToMovieCount = new Map();
+  data.forEach(genre => genreToMovieCount.set(genre._id, genre.count));
+  const genreData = Array.from(genreToMovieCount.entries()).sort((a, b) => b[1] - a[1]);
+
   const barPadding = 3;
   const barWidth = Math.min(
-    (svgWidth - padding * 2) / genreData.length - barPadding,
+    (svgWidth - padding * 2) / Array.from(genreToMovieCount.values()).length - barPadding,
     svgWidth / 10,
   );
   const bars = barChart

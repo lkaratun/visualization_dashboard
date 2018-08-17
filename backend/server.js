@@ -55,9 +55,29 @@ router.get("/convert/:fileName", async (req, res) => {
   catch (e) { console.log(e); }
 });
 
-router.get("/getMoviesByYear/:startYear-:endYear", async (req, res) => {
+router.get("/getScatterPlotData/:countries/:startYear-:endYear", async (req, res) => {
   try {
-    const [err, movies] = await to(findMoviesInYearsRange(req.params.startYear, req.params.endYear));
+    const [err, movies] = await to(findMovies({
+      countries: req.params.countries !== "null" ? JSON.parse(req.params.countries) : null,
+      years: [req.params.startYear, req.params.endYear]
+    }));
+    if (err) {
+      console.error(err);
+      res.send(err);
+    }
+    else {
+      res.send(movies);
+    };
+  }
+  catch (e) { console.log(e); }
+});
+
+router.get("/getBarChartData/:countries/:startYear-:endYear", async (req, res) => {
+  try {
+    const [err, movies] = await to(countMoviesPerGenre({
+      countries: req.params.countries !== "null" ? JSON.parse(req.params.countries) : null,
+      years: [req.params.startYear, req.params.endYear]
+    }));
     if (err) {
       console.error(err);
       res.send(err);
@@ -71,10 +91,9 @@ router.get("/getMoviesByYear/:startYear-:endYear", async (req, res) => {
 
 router.get("/getCountByCountry/:countries/:startYear-:endYear", async (req, res) => {
   try {
-    const [err, movieCounts] = await to(countMoviesPerCountryInYearsRange({
+    const [err, movieCounts] = await to(countMoviesPerCountry({
       countries: req.params.countries !== "null" ? JSON.parse(req.params.countries) : null,
-      startYear: req.params.startYear,
-      endYear: req.params.endYear
+      years: [req.params.startYear, req.params.endYear]
     }));
     if (err) {
       console.error(err);
@@ -135,7 +154,8 @@ async function listDistinctYears() {
   return years.filter(year => year != null).sort((a, b) => a - b);
 }
 
-async function findMoviesInYearsRange(startYear, endYear) {
+async function findMovies({ countries, years }) {
+  const [startYear, endYear] = years;
   const startDate = new Date(`${startYear}-01-01`);
   const endDate = new Date(`${endYear}-12-31`);
   const query = {
@@ -144,16 +164,35 @@ async function findMoviesInYearsRange(startYear, endYear) {
     voteAverage: { $exists: true },
     popularity: { $exists: true }
   };
+  if (countries !== null) query["productionCountries.letterCode"] = { "$in": countries };
   const projection = {
-    voteAverage: 1, budget: 1, productionCountries: 1,
-    releaseDate: 1, releaseYear: 1, popularity: 1, genres: 1, title: 1, posterPath: 1,
-    id: 1
+    _id: 0, voteAverage: 1, budget: 1,
+    popularity: 1, title: 1, posterPath: 1, id: 1
   };
   const moviesCollection = await moviesCollectionPromise;
   return moviesCollection.find(query, { projection }).toArray();
 }
 
-async function countMoviesPerCountryInYearsRange({ countries, startYear, endYear }) {
+async function countMoviesPerGenre({ countries, years }) {
+  const [startYear, endYear] = years;
+  const startDate = new Date(`${startYear}-01-01`);
+  const endDate = new Date(`${endYear}-12-31`);
+  const match = {
+    "$match": {
+      releaseDate: { "$gte": startDate, "$lte": endDate },
+      genres: { $exists: true }
+    }
+  };
+  if (countries !== null) { match.$match["productionCountries.letterCode"] = { $in: countries }; };
+  const project = { $project: { _id: 0, genres: 1 } };
+  const unwind = { $unwind: "$genres" };
+  const group = { "$group": { _id: "$genres", count: { $sum: 1 } } };
+  const moviesCollection = await moviesCollectionPromise;
+  return moviesCollection.aggregate([match, project, unwind, group]).toArray();
+}
+
+async function countMoviesPerCountry({ countries, years }) {
+  const [startYear, endYear] = years;
   const startDate = new Date(`${startYear}-01-01`);
   const endDate = new Date(`${endYear}-12-31`);
   const match = {
