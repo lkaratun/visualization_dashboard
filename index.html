@@ -9,26 +9,34 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.5.0/d3.js"></script>
 	<script src="https://unpkg.com/topojson@3"></script>
 	<link href="https://fonts.googleapis.com/css?family=Lato" rel="stylesheet">
+	<!-- <script src="https://code.jquery.com/jquery-3.3.1.js" integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous"></script> -->
 
+	<!-- <script src="node_modules/jquery-ui-1.12.1.custom/external/jquery/jquery.js"></script> -->
+	<!-- <script src="node_modules/jquery-ui-1.12.1.custom/jquery-ui.js"></script> -->
 
-	<script defer src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/11.1.0/nouislider.min.js"></script>
+	<script src="https://simeydotme.github.io/jQuery-ui-Slider-Pips/dist/js/jquery-plus-ui.min.js"></script>
+	<script src="https://simeydotme.github.io/jQuery-ui-Slider-Pips/dist/js/jquery-ui-slider-pips.js"></script>
+
+	<link rel="stylesheet" href="https://simeydotme.github.io/jQuery-ui-Slider-Pips/dist/css/jqueryui.min.css">
+	<link rel="stylesheet" href="https://simeydotme.github.io/jQuery-ui-Slider-Pips/dist/css/jquery-ui-slider-pips.min.css">
+	<link rel="stylesheet" href="https://simeydotme.github.io/jQuery-ui-Slider-Pips/dist/css/app.min.css">
+	<!-- <script defer src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/11.1.0/nouislider.min.js"></script> -->
 
 
 
 	<title>Movie data visualization</title>
-	<link href="node_modules/nouislider/distribute/nouislider.min.css" rel="stylesheet">
+	<!-- <link href="node_modules/nouislider/distribute/nouislider.min.css" rel="stylesheet"> -->
 	<link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 	<div id="header">
 		<h1>Movie data visualization</h1>
-		<div id="range">
-			<!-- <input type="range" id="year" step="1"/> -->
-		</div>
-		<h5 id="sliderLabel" style="display: inline-block">Year:
+		<!-- <div id="range"> </div> -->
+		<div id="scale-slider"></div>
+		<!-- <h5 id="sliderLabel" style="display: inline-block">Year:
 			<input type="text" id="yearInput1"> -
-			<input type="text" id="yearInput2"> </h5>
+			<input type="text" id="yearInput2"> </h5> -->
 	</div>
 	<div class="flex-container">
 		<div class="plot">

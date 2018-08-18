@@ -1,3 +1,4 @@
+// import $ from "./node_modules/jquery-ui-1.12.1.custom/jquery-ui";
 import * as countryCodesObj from "./countryCodes.json";
 import * as mapData from "./mapData.json";
 
@@ -36,7 +37,7 @@ const backEndUrlBase = "https://localhost:3000";
 
 window.onload = async function init() {
   getListOfYearsFromDB().then(years => {
-    setUpYearSlider(d3.min(years), d3.max(years));
+    setUpNewSlider(d3.min(years), d3.max(years));
   });
 
   countryCodes.forEach((d) => {
@@ -101,6 +102,32 @@ function setUpYearSlider(minYear, maxYear) {
     range.noUiSlider.set([null, this.value]);
     sliderHigh = this.value;
   });
+}
+
+
+function setUpNewSlider(minYear, maxYear) {
+  $("#scale-slider")
+    .slider({
+      max: maxYear,
+      min: 1900,
+      values: [initialMinYear, initialMaxYear],
+      range: true,
+      step: 1,
+
+    })
+    .slider("pips", {
+      first: true,
+      last: true,
+      rest: "label",
+      step: 1
+    });
+  $("#scale-slider").on("slidechange", (event, ui) => {
+    const years = $("#scale-slider").slider("option", "values");
+    yearsChosen = years;
+    refreshPlots({ years, countries: countriesChosen });
+
+  });
+
 }
 
 function loadScatterPlotDataFromDB({ years, countries }) {
@@ -639,12 +666,12 @@ async function displayMovieInfo(id) {
   const htmlString = `
   <img style="display: block; float:left; margin: 10px; height: 95%" src="${imgBaseUrlLarge +
     movie.posterPath}" alt="Image poster not found" />
-  <h2 style="text-align: center">${movie.title}</h2>
-  <h3>Year: ${movie.releaseYear}<br>
+  <h4 style="text-align: center">${movie.title}</h4>
+  <h5>Year: ${movie.releaseYear}<br>
   ${countries}<br>
   Budget: ${budget}<br>
   Runtime: ${runTime}<br>
-  Average rating: ${movie.voteAverage}</h3>
+  Average rating: ${movie.voteAverage}</h5>
   <p>${movie.overview}</p>
   `;
   d3.select('#movieInfo')
