@@ -9,8 +9,8 @@ const d3 = require("d3");
 const svgWidth = 600;
 const svgHeight = 400;
 const padding = 40;
-const initialMinYear = 1960;
-const initialMaxYear = 1970;
+const initialMinYear = 1950;
+const initialMaxYear = 1960;
 const sliderLow = 1900;
 // let sliderHigh;
 let yearsChosen = [initialMinYear, initialMaxYear];
@@ -32,8 +32,8 @@ const imgBaseUrl = 'https://image.tmdb.org/t/p/w154/';
 const imgBaseUrlLarge = 'https://image.tmdb.org/t/p/w185/';
 
 
-const backEndUrlBase = "https://localhost:3000";
-// const backEndUrlBase = "https://levkaratun.com:3000";
+// const backEndUrlBase = "https://localhost:3000";
+const backEndUrlBase = "https://levkaratun.com:3000";
 
 window.onload = async function init() {
   getListOfYearsFromDB().then(years => {
@@ -184,16 +184,8 @@ async function drawScatterPlot({ data, years }) {
   const [startYear, endYear] = years;
   const yearsText = startYear === endYear ? `${yLabel} vs ${xLabel} (${startYear})` : `${yLabel} vs ${xLabel} (${startYear} - ${endYear})`;
 
-  // Plot label
-  scatterPlot
-    .append('text')
-    .classed('plotLabel', true)
-    .text(yearsText)
-    .attr('x', svgWidth / 2)
-    .attr('y', padding)
-    .attr('dy', '-0.75em')
-    .attr('font-size', '1.2em')
-    .attr('text-anchor', 'middle');
+  addLabel(scatterPlot, yearsText);
+  addNote(scatterPlot, "(click a circle to see detailed movie info)");
 
   // Axes labels
   // X axis
@@ -263,6 +255,7 @@ async function drawScatterPlot({ data, years }) {
 } // DrawScatterPlot
 
 async function drawMap({ data }) {
+  // const worldMap = d3.select("#worldMap");
   const geoData = topojson.feature(mapData, mapData.objects.countries).features;
 
   const countryCodeToMovieCount = new Map();
@@ -357,25 +350,9 @@ async function drawMap({ data }) {
     tooltip.style('opacity', 0);
   }
 
-  // Plot label
-  d3.select('#worldMap')
-    .append('text')
-    .text('Number of movies per country')
-    .attr('x', svgWidth / 2)
-    .attr('y', 0)
-    .attr('dy', '0.75em')
-    .attr('font-size', '1.2em')
-    .attr('text-anchor', 'middle');
+  addLabel(d3.select('#worldMap'), "Number of movies per country");
+  addNote(d3.select('#worldMap'), "(click to filter by country, shift+click to select multiple countries)");
 
-  // Bottom note
-  d3.select('#worldMap')
-    .append('text')
-    .text('(click to filter by country, shift+click to select multiple countries)')
-    .attr('x', svgWidth / 2)
-    .attr('y', 0)
-    .attr('dy', '2.4em')
-    .attr('font-size', '0.7em')
-    .attr('text-anchor', 'middle');
 
 
   // Color legend (gradient)
@@ -572,19 +549,8 @@ function drawBarChart({ data }) {
     .attr('x', -svgHeight + paddingBottom * 2)
     .on("click", (d) => handleClick(d[0]));
 
-  barChart
-    .selectAll('.plotLabel')
-    .remove();
-
-  barChart
-    .append('text')
-    .classed('plotLabel', true)
-    .text(`Number of movies per genre`)
-    .attr('x', svgWidth / 2)
-    .attr('y', padding)
-    .attr('dy', '-0.75em')
-    .attr('font-size', '1.2em')
-    .attr('text-anchor', 'middle');
+  addLabel(barChart, "Number of movies per genre");
+  addNote(barChart, "(click to filter by genre, shift+click to select multiple genres)");
 
   // Left axis
   barChart
@@ -593,9 +559,33 @@ function drawBarChart({ data }) {
     .attr('transform', `translate (${padding}, ${-paddingBottom})`);
 } // drawBarChart
 
+
+function addLabel(selection, labelText) {
+  selection
+    .append('text')
+    .classed('plotLabel', true)
+    .text(labelText)
+    .attr('x', svgWidth / 2)
+    .attr('y', 0)
+    .attr('dy', '0.75em')
+    .attr('font-size', '1.2em')
+    .attr('text-anchor', 'middle');
+}
+
+function addNote(selection, noteText) {
+  selection
+    .append('text')
+    .text(noteText)
+    .attr('x', svgWidth / 2)
+    .attr('y', 0)
+    .attr('dy', '2.4em')
+    .attr('font-size', '0.7em')
+    .attr('text-anchor', 'middle');
+}
+
+
 async function displayMovieInfo(id) {
   const movie = await getMovieDetails(id);
-
   const budget = movie.budget
     .toLocaleString('en-US', { style: 'currency', currency: 'USD' })
     .slice(0, -3);
@@ -615,15 +605,16 @@ async function displayMovieInfo(id) {
   // get rid or comma and space after the last country
   countries = countries.slice(0, -2).replace("United States of America", "USA");
 
+  const rating = typeof movie.voteAverage === "object" ? +movie.voteAverage.$numberDouble : movie.voteAverage;
   const htmlString = `
-  <img style="display: block; float:left; margin: 10px; height: 95%" src="${imgBaseUrlLarge +
+  <img style="display: block; float:left; margin: 1%; height: auto; width: 256px;" src="${imgBaseUrlLarge +
     movie.posterPath}" alt="Image poster not found" />
   <h4 style="text-align: center">${movie.title}</h4>
   <h5>Year: ${movie.releaseYear}<br>
   ${countries}<br>
   Budget: ${budget}<br>
   Runtime: ${runTime}<br>
-  Average rating: ${movie.voteAverage}</h5>
+  Average rating: ${rating}</h5>
   <p>${movie.overview}</p>
   `;
   d3.select('#movieInfo')

@@ -42,8 +42,8 @@ h1 {
 	opacity: 0;
 	position: absolute;
 	pointer-events: none;
-	background-color: LightGray;
-	border: 1px solid black;
+	background-color:#f7f7f7;
+	/* border: 1px solid black; */
 	border-radius: 5px;
 	padding: 5px;
 	display: block;
@@ -65,7 +65,7 @@ h1 {
 	font-weight: lighter;
 }
 
-#movieInfo, .plot {
+.plot {
 	margin: 1%;
 	display: block;
 	box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.48);
@@ -79,6 +79,11 @@ h1 {
 	width: 600px;
 	min-height: 200px;
 	overflow: auto;
+	max-height: 400px;
+}
+
+#movieInfo img {
+	max-height: 400px;
 }
 
 #header, #footer {
@@ -141,6 +146,10 @@ div#range.noUi-target {
 #scale-slider .ui-slider-pip:nth-of-type(10n+3) .ui-slider-label {
 	top: 16px;
 	display: block; }
+
+	#scale-slider .ui-slider-pip:last-child .ui-slider-label {
+		top: 16px;
+		display: block; }
 
 #scale-slider {
 	width: 80%;
