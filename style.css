@@ -1,3 +1,22 @@
+h1 {
+	cursor: pointer;
+}
+#scatterPlot circle {
+	cursor: pointer;
+}
+#barChart .bar {
+	cursor: pointer;
+}
+#worldMap .country {
+	cursor: pointer;
+}
+
+
+#barChart .barLabel {
+	cursor: pointer;
+	user-select: none;
+}
+
 .tick line{
 	stroke:#999;
 	stroke-dasharray: 10 5;
@@ -20,7 +39,9 @@
 	border-radius: 5px;
 	padding: 5px;
 	display: block;
+	width: fit-content;
 	max-width: 168px;
+	color:black;
 }
 
 #slider, svg  {
@@ -98,4 +119,23 @@ div#range.noUi-target {
 	max-width: 10ex;
 	text-align: center;
 	margin-top: 30px;
+}
+
+/* New slider */
+#scale-slider {
+	margin-bottom:40px !important;
+	margin-top:20px !important;
+}
+
+#scale-slider .ui-slider-pip:nth-of-type(5n+3) .ui-slider-line {
+	height: 12px; }
+
+#scale-slider .ui-slider-pip:nth-of-type(10n+3) .ui-slider-label {
+	top: 16px;
+	display: block; }
+
+#scale-slider {
+	width: 80%;
+	margin:auto;
+	display:inline-block;
 }

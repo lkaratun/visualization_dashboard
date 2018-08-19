@@ -1,4 +1,3 @@
-// import $ from "./node_modules/jquery-ui-1.12.1.custom/jquery-ui";
 import * as countryCodesObj from "./countryCodes.json";
 import * as mapData from "./mapData.json";
 
@@ -10,12 +9,13 @@ const d3 = require("d3");
 const svgWidth = 600;
 const svgHeight = 400;
 const padding = 40;
-const initialMinYear = 1950;
-const initialMaxYear = 1960;
-let sliderLow;
-let sliderHigh;
+const initialMinYear = 1960;
+const initialMaxYear = 1970;
+const sliderLow = 1900;
+// let sliderHigh;
 let yearsChosen = [initialMinYear, initialMaxYear];
 let countriesChosen = [];
+let genresChosen = [];
 
 let colorScale;
 const xDataSelector = 'budget';
@@ -46,9 +46,7 @@ window.onload = async function init() {
     codeNumericToName.set(d['country-code'], d.name);
   });
 
-  refreshPlots({ years: [initialMinYear, initialMaxYear], countries: countriesChosen });
-
-
+  refreshPlots({ years: [initialMinYear, initialMaxYear], countries: countriesChosen, genres: genresChosen });
 };
 
 function getListOfYearsFromDB() {
@@ -56,60 +54,11 @@ function getListOfYearsFromDB() {
   return fetch(requestURL).then(res => res.json()).then(years => years.map(d => +d));
 }
 
-function setUpYearSlider(minYear, maxYear) {
-  const range = document.getElementById('range');
-  noUiSlider.create(range, {
-    start: [initialMinYear, initialMaxYear],
-    step: 1,
-    connect: true,
-    direction: 'ltr',
-    orientation: 'horizontal',
-    behavior: 'tap-drag',
-    range: {
-      // Slider can go from minYear to maxYear
-      min: minYear,
-      max: maxYear,
-    },
-    pips: {
-      // Show a scale with the slider
-      mode: 'range',
-      density: 10,
-    },
-  });
-  const yearInputs = [
-    document.getElementById('yearInput1'),
-    document.getElementById('yearInput2'),
-  ];
-  // When the slider value changes, update the input and span
-  range.noUiSlider.on('update', (values, handle) => {
-    [sliderLow, sliderHigh] = values;
-    sliderLow = Math.round(sliderLow);
-    sliderHigh = Math.round(sliderHigh);
-    yearInputs[handle].value = Math.floor(values[handle]);
-  });
-  range.noUiSlider.on('set', async (values) => {
-    // Convert from string to int
-    yearsChosen = values.map(d => Math.round(+d));
-    // data = await loadDataFromDB({ years: [yearsChosen[0], yearsChosen[1]] });
-    refreshPlots({ years: yearsChosen, countries: countriesChosen });
-  });
-  // When the input changes, set the slider value
-  yearInputs[0].addEventListener('change', function () {
-    range.noUiSlider.set([this.value, null]);
-    sliderLow = this.value;
-  });
-  yearInputs[1].addEventListener('change', function () {
-    range.noUiSlider.set([null, this.value]);
-    sliderHigh = this.value;
-  });
-}
-
-
 function setUpNewSlider(minYear, maxYear) {
   $("#scale-slider")
     .slider({
       max: maxYear,
-      min: 1900,
+      min: sliderLow,
       values: [initialMinYear, initialMaxYear],
       range: true,
       step: 1,
@@ -121,35 +70,33 @@ function setUpNewSlider(minYear, maxYear) {
       rest: "label",
       step: 1
     });
-  $("#scale-slider").on("slidechange", (event, ui) => {
+  $("#scale-slider").on("slidechange", () => {
     const years = $("#scale-slider").slider("option", "values");
     yearsChosen = years;
-    refreshPlots({ years, countries: countriesChosen });
+    refreshPlots({ years, countries: countriesChosen, genres: genresChosen });
 
   });
 
 }
 
-function loadScatterPlotDataFromDB({ years, countries }) {
+function loadScatterPlotDataFromDB({ years, countries, genres }) {
   const [startYear, endYear] = years;
-  let letterCodes = null;
-  if (countries.length) letterCodes = JSON.stringify(countries);
-  const requestURL = `${backEndUrlBase}/getScatterPlotData/${letterCodes}/${startYear}-${endYear}`;
+  const countriesString = countries.length ? JSON.stringify(countries) : null;
+  const genresString = genres.length ? JSON.stringify(genres) : null;
+  const requestURL = `${backEndUrlBase}/getScatterPlotData/${countriesString}/${genresString}/${startYear}-${endYear}`;
   return fetch(requestURL, { credentials: 'include' }).then(res => res.json());
 }
 
-function loadMapDataFromDB({ years, countries }) {
+function loadMapDataFromDB({ years, genres }) {
   const [startYear, endYear] = years;
-  let letterCodes = null;
-  if (countries.length) letterCodes = JSON.stringify(countries);
-  const requestURL = `${backEndUrlBase}/getCountByCountry/${letterCodes}/${startYear}-${endYear}`;
+  const genresString = genres.length ? JSON.stringify(genres) : null;
+  const requestURL = `${backEndUrlBase}/getMapData/${genresString}/${startYear}-${endYear}`;
   return fetch(requestURL, { credentials: 'include' }).then(res => res.json());
 }
 
 function loadBarChartDataFromDB({ years, countries }) {
   const [startYear, endYear] = years;
-  let letterCodes = null;
-  if (countries.length) letterCodes = JSON.stringify(countries);
+  const letterCodes = countries.length ? JSON.stringify(countries) : null;
   const requestURL = `${backEndUrlBase}/getBarChartData/${letterCodes}/${startYear}-${endYear}`;
   return fetch(requestURL, { credentials: 'include' }).then(res => res.json());
 }
@@ -161,8 +108,8 @@ function getMovieDetails(id) {
 
 
 
-async function refreshPlots({ years, countries }) {
-  loadScatterPlotDataFromDB({ years, countries }).then(data => {
+async function refreshPlots({ years, countries, genres }) {
+  loadScatterPlotDataFromDB({ years, countries, genres }).then(data => {
     data.forEach(d => {
       if (typeof d.voteAverage === "object") { d.voteAverage = +d.voteAverage.$numberDouble; }
       if (typeof d.popularity === "object") { d.popularity = +d.popularity.$numberDouble; }
@@ -171,7 +118,7 @@ async function refreshPlots({ years, countries }) {
     drawScatterPlot({ data, years });
   });
 
-  loadMapDataFromDB({ years, countries }).then((data) => drawMap({ data }));
+  loadMapDataFromDB({ years, genres }).then((data) => drawMap({ data }));
   loadBarChartDataFromDB({ years, countries }).then((data) => drawBarChart({ data }));
 }
 
@@ -274,29 +221,12 @@ async function drawScatterPlot({ data, years }) {
   points
     .enter()
     .append('circle')
-    .attr('cx', d => (d[xDataSelector] ? xScale(d[xDataSelector]) : padding))
-    .attr(
-      'cy',
-      d =>
-        (d[yDataSelector] ? yScale(d[yDataSelector]) : svgHeight - padding)
-
-    )
     .merge(points)
-    // .transition()
-    // .duration(300)
-    // .delay((d, i) => i * 3)
     .attr('cx', d => (d[xDataSelector] ? xScale(d[xDataSelector]) : padding))
-    .attr(
-      'cy',
-      d => (d[yDataSelector] ? yScale(d[yDataSelector]) : svgHeight - padding),
-  )
+    .attr('cy', d => (d[yDataSelector] ? yScale(d[yDataSelector]) : svgHeight - padding))
     .attr('fill', '#444444')
-    .attr(
-      'r',
-      d => radiusScale(d[rDataSelector])
-    );
+    .attr('r', d => radiusScale(d[rDataSelector]));
 
-  window.points = points;
   points.raise();
 
   // tooltips
@@ -318,9 +248,8 @@ async function drawScatterPlot({ data, years }) {
     .on('mouseout', () => tooltip.style('opacity', 0));
 
   // Show movie info on circle click
-  scatterPlot.selectAll('circle').on('click', (d) => {
-    displayMovieInfo(d.id);
-  });
+  scatterPlot.selectAll('circle')
+    .on("click", (d) => displayMovieInfo(d.id));
 
   function removeOldElements(selection) {
     selection.selectAll('g').remove();
@@ -388,7 +317,7 @@ async function drawMap({ data }) {
       if (d3.event.target.id === "worldMap") {
         // clear countries selected
         countriesChosen = [];
-        refreshPlots({ years: yearsChosen, countries: countriesChosen });
+        refreshPlots({ years: yearsChosen, countries: countriesChosen, genres: genresChosen });
       }
     });
 
@@ -396,7 +325,7 @@ async function drawMap({ data }) {
   d3.select('#worldMap')
     .selectAll('.country')
     .on('mousemove', handleMouseOver)
-    .on('mouseout', () => tooltip.style('opacity', 0))
+    .on('mouseout', handleMouseOut)
     .on('click', (d) => {
       const countryName = codeNumericToLetter.get(d.id);
       if (d3.event.shiftKey) {
@@ -407,7 +336,7 @@ async function drawMap({ data }) {
       else if (JSON.stringify(countriesChosen) === JSON.stringify([countryName])) { countriesChosen = []; }
       // Multiple or no countries were chosen
       else { countriesChosen = [countryName]; }
-      refreshPlots({ years: yearsChosen, countries: countriesChosen });
+      refreshPlots({ years: yearsChosen, countries: countriesChosen, genres: genresChosen });
     });
 
   function handleMouseOver(d) {
@@ -417,17 +346,15 @@ async function drawMap({ data }) {
       .text(codeNumericToName.get(d.id))
       .style(
         'left',
-        `${coords[0] -
-        tooltip.node().offsetWidth / 2 +
-        document.getElementById('worldMap').getBoundingClientRect().x}px`,
+        `${coords[0] - tooltip.node().offsetWidth / 2 + document.getElementById('worldMap').getBoundingClientRect().x}px`,
     )
       .style(
         'top',
-        `${coords[1] -
-        35 +
-        document.getElementById('worldMap').getBoundingClientRect().y +
-        window.pageYOffset}px`,
+        `${coords[1] - 35 + document.getElementById('worldMap').getBoundingClientRect().y + window.pageYOffset}px`,
     );
+  }
+  function handleMouseOut() {
+    tooltip.style('opacity', 0);
   }
 
   // Plot label
@@ -606,9 +533,33 @@ function drawBarChart({ data }) {
     .attr('y', d => yScale(d[1]) - paddingBottom)
     .attr('height', d => svgHeight - yScale(d[1]))
     .attr('width', barWidth)
-    // .attr("fill", d => genreColorScale(d[0]));
     .attr('fill', '#4B80B7')
-    .attr('opacity', 0.5);
+    .attr('opacity', 0.5)
+    .on("click", (d) => handleClick(d[0]))
+    .attr("stroke", d => genresChosen.includes(d[0]) ? "#222222" : "blue")
+    .attr("stroke-width", d => genresChosen.includes(d[0]) ? "2px" : "0");
+
+  function handleClick(genreName) {
+    if (d3.event.shiftKey) {
+      if (genresChosen.includes(genreName)) { genresChosen = genresChosen.filter(entry => entry !== genreName); }
+      else { genresChosen.push(genreName); }
+    }
+    // Genre was the only one chosen
+    else if (JSON.stringify(genresChosen) === JSON.stringify([genreName])) { genresChosen = []; }
+    // Multiple or no genres were chosen
+    else { genresChosen = [genreName]; }
+    refreshPlots({ years: yearsChosen, countries: countriesChosen, genres: genresChosen });
+  }
+
+  // Clear selected genres list on empty space click
+  barChart
+    .on('click', () => {
+      if (d3.event.target.id === "barChart") {
+        // clear countries selected
+        genresChosen = [];
+        refreshPlots({ years: yearsChosen, countries: countriesChosen, genres: genresChosen });
+      }
+    });
 
   // Bar labels
   barLabels
@@ -618,11 +569,13 @@ function drawBarChart({ data }) {
     .merge(barLabels)
     .text(d => d[0])
     .attr('y', (d, i) => padding + (barWidth + barPadding) * i + barWidth / 1.5)
-    .attr('x', -svgHeight + paddingBottom * 2);
+    .attr('x', -svgHeight + paddingBottom * 2)
+    .on("click", (d) => handleClick(d[0]));
 
   barChart
     .selectAll('.plotLabel')
     .remove();
+
   barChart
     .append('text')
     .classed('plotLabel', true)
@@ -632,7 +585,6 @@ function drawBarChart({ data }) {
     .attr('dy', '-0.75em')
     .attr('font-size', '1.2em')
     .attr('text-anchor', 'middle');
-  // .attr("alignment-baseline", "mathematical");
 
   // Left axis
   barChart
