@@ -6,6 +6,7 @@ const express = require("express");
 const fs = require('fs');
 const cors = require("cors");
 const https = require('https');
+const spdy = require('spdy');
 
 const app = express();
 app.use(cors({
@@ -18,7 +19,7 @@ app.use(compression());
 
 
 const { keyPath, certPath } = process.env;
-https.createServer({
+spdy.createServer({
   key: fs.readFileSync(keyPath),
   cert: fs.readFileSync(certPath)
 }, app)

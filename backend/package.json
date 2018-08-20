@@ -19,7 +19,8 @@
     "express": "^4.16.3",
     "fs": "0.0.1-security",
     "mongodb": "^3.1.1",
-    "mongoose": "^5.1.6"
+    "mongoose": "^5.1.6",
+    "spdy": "^3.4.7"
   },
   "devDependencies": {
     "nodemon": "^1.18.3"
