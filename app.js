@@ -132,7 +132,7 @@ async function drawScatterPlot({ data, years }) {
     removeOldElements(scatterPlot);
     scatterPlot
       .append("text")
-      .classed("placeholder", true)
+      .attr("class", "placeholder")
       .text("No data points to display")
       .attr("x", svgWidth / 2)
       .attr("y", svgHeight / 2)
@@ -287,7 +287,7 @@ async function drawMap({ data }) {
   worldMap
     .enter()
     .append('path')
-    .classed('country', true)
+    .attr("class", 'country')
     .merge(worldMap)
     .attr('d', path)
     .attr(
@@ -466,7 +466,7 @@ function drawBarChart({ data }) {
 
     barChart
       .append("text")
-      .classed("placeholder", true)
+      .attr("class", "placeholder")
       .text("No data points to display")
       .attr("x", svgWidth / 2)
       .attr("y", svgHeight / 2)
@@ -504,7 +504,7 @@ function drawBarChart({ data }) {
   bars
     .enter()
     .append('rect')
-    .classed('bar', true)
+    .attr("class", 'bar')
     .merge(bars)
     .attr('x', (d, i) => padding + (barWidth + barPadding) * i)
     .attr('y', d => yScale(d[1]) - paddingBottom)
@@ -542,7 +542,7 @@ function drawBarChart({ data }) {
   barLabels
     .enter()
     .append('text')
-    .classed('barLabel', true)
+    .attr("class", 'barLabel')
     .merge(barLabels)
     .text(d => d[0])
     .attr('y', (d, i) => padding + (barWidth + barPadding) * i + barWidth / 1.5)
@@ -563,7 +563,7 @@ function drawBarChart({ data }) {
 function addLabel(selection, labelText) {
   selection
     .append('text')
-    .classed('plotLabel', true)
+    .attr("class", 'plotLabel')
     .text(labelText)
     .attr('x', svgWidth / 2)
     .attr('y', 0)

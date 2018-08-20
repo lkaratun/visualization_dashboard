@@ -7,7 +7,7 @@ div.plot {
 }
 
 h1 {
-	cursor: pointer;
+	cursor: default;
 }
 #scatterPlot circle {
 	cursor: pointer;
@@ -136,23 +136,58 @@ div#range.noUi-target {
 
 /* New slider */
 #scale-slider {
+	position: relative;
+	/* top:10px; */
 	margin-bottom:40px !important;
-	margin-top:20px !important;
+	margin-top:40px !important;
+	display: inline-block !important; 
+	width: 60% !important;
+	
+
 }
 
 #scale-slider .ui-slider-pip:nth-of-type(5n+3) .ui-slider-line {
-	height: 12px; }
+	height: 12px; 
+	/* background-color: white !important; */
+}
+	
 
 #scale-slider .ui-slider-pip:nth-of-type(10n+3) .ui-slider-label {
 	top: 16px;
-	display: block; }
+	display: block; 
+	/* color: white; */
+}
 
 	#scale-slider .ui-slider-pip:last-child .ui-slider-label {
 		top: 16px;
-		display: block; }
+		display: block; 
+		/* color: white; */
+	}
 
 #scale-slider {
 	width: 80%;
 	margin:auto;
 	display:inline-block;
+}
+
+/* Header  */
+nav {
+	display: flex;
+	flex-flow: row wrap;
+	justify-content: space-around;
+	align-items: center;
+	margin: 0px;
+	padding: 0px;
+	/* background-color: rgba(52, 108, 156, 0.8); */
+	background-color: #5e8fba;
+	
+}
+.title {
+	margin: 1vw;
+	margin-left: 3vw;
+	font-weight: bold;
+	font-size: 2em;
+	margin-right: auto;
+	color: #F7F7F7;
+	
 }
