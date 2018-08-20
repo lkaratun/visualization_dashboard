@@ -4,5 +4,6 @@
     "imdb",
     "nouislider",
     "topojson"
-  ]
+  ],
+  "explorer.sortOrder": "modified"
 }
