@@ -1,5 +1,3 @@
-
-
 import * as countryCodesObj from "./countryCodes.json";
 import * as mapData from "./mapData.json";
 
