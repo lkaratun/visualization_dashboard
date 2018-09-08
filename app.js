@@ -1,3 +1,5 @@
+
+
 import * as countryCodesObj from "./countryCodes.json";
 import * as mapData from "./mapData.json";
 
@@ -234,7 +236,7 @@ async function drawScatterPlot({ data, years }) {
         .style(
           'left',
           `${d3.event.x /* - tooltip.node().offsetWidth/2 */ + 5}px`,
-      )
+        )
         .style('top', `${d3.event.pageY}px`);
     })
     .on('mouseout', () => tooltip.style('opacity', 0));
@@ -340,11 +342,11 @@ async function drawMap({ data }) {
       .style(
         'left',
         `${coords[0] - tooltip.node().offsetWidth / 2 + document.getElementById('worldMap').getBoundingClientRect().x}px`,
-    )
+      )
       .style(
         'top',
         `${coords[1] - 35 + document.getElementById('worldMap').getBoundingClientRect().y + window.pageYOffset}px`,
-    );
+      );
   }
   function handleMouseOut() {
     tooltip.style('opacity', 0);

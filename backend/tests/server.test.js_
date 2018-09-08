@@ -1,0 +1,14 @@
+// import { listDistinctYears } from "../server";
+const server = require("../server");
+
+// describe("listDistinctYears", () => {
+//   it("should return an array", () => {
+//     expect(listDistinctYears()).toBeInstanceOf(Array);
+//   });
+// });
+
+// test("Returns an array", async () => {
+//   expect.assertions(1);
+//   await expect(server.listDistinctYears()).resolves.toBeInstanceOf(Array);
+// }
+// );

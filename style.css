@@ -155,13 +155,13 @@ div#range.noUi-target {
 #scale-slider .ui-slider-pip:nth-of-type(10n+3) .ui-slider-label {
 	top: 16px;
 	display: block; 
-	/* color: white; */
+	color: #F7F7F7;
 }
 
 	#scale-slider .ui-slider-pip:last-child .ui-slider-label {
 		top: 16px;
 		display: block; 
-		/* color: white; */
+		color: #F7F7F7;
 	}
 
 #scale-slider {
