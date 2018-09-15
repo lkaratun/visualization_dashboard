@@ -1,9 +1,6 @@
 {
-  "cSpell.words": [
-    "colorbrewer",
-    "imdb",
-    "nouislider",
-    "topojson"
-  ],
-  "explorer.sortOrder": "modified"
+  "cSpell.words": ["colorbrewer", "imdb", "nouislider", "topojson"],
+  "explorer.sortOrder": "modified",
+  "cSpell.allowCompoundWords": true,
+  "cSpell.logLevel": "Information"
 }

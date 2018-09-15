@@ -7,8 +7,8 @@ const server = require("../server");
 //   });
 // });
 
-// test("Returns an array", async () => {
-//   expect.assertions(1);
-//   await expect(server.listDistinctYears()).resolves.toBeInstanceOf(Array);
-// }
-// );
+test("Returns an array", async () => {
+  expect.assertions(1);
+  console.log("Testing server.js!");
+  // await expect(server.listDistinctYears()).resolves.toBeInstanceOf(Array);
+});

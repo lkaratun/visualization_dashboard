@@ -1,8 +1,5 @@
 {
-  "extends": [
-    "airbnb-base",
-    "prettier"
-  ],
+  "extends": ["airbnb-base", "prettier"],
   "globals": {
     "window": false,
     "d3": false,
@@ -13,7 +10,8 @@
     "Blob": false,
     "navigator": false,
     "fetch": false,
-    "$": false
+    "$": false,
+    "page": false
   },
   "rules": {
     "no-use-before-define": 0,
@@ -24,22 +22,15 @@
       "off",
       {
         "props": false,
-        "ignorePropertyModificationsFor": [
-          "data"
-        ]
+        "ignorePropertyModificationsFor": ["data"]
       }
     ],
-    "func-names": [
-      "off",
-      "as-needed"
-    ],
+    "func-names": ["off", "as-needed"],
     "semi": "error",
     "linebreak-style": "off",
     "import/no-extraneous-dependencies": 0
   },
-  "plugins": [
-    "prettier"
-  ],
+  "plugins": ["prettier"],
   "env": {
     "jest": true
   }
