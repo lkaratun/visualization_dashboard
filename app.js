@@ -237,7 +237,8 @@ async function drawScatterPlot({ data, years }) {
     .selectAll("circle")
     .on("mousemove", d => {
       tooltip
-        .style("opacity", 1)
+        // .style("opacity", 1)
+        .style("display", "block")
         .html(
           `<b style="display: block">${d.title}</b>
         <img style="display: block" src="${imgBaseUrl +
@@ -249,7 +250,8 @@ async function drawScatterPlot({ data, years }) {
         )
         .style("top", `${d3.event.pageY}px`);
     })
-    .on("mouseout", () => tooltip.style("opacity", 0));
+    // .on("mouseout", () => tooltip.style("opacity", 0));
+    .on("mouseout", () => tooltip.style("display", "none"));
 
   // Show movie info on circle click
   scatterPlot.selectAll("circle").on("click", d => displayMovieInfo(d.id));
@@ -630,6 +632,8 @@ function addNote(selection, noteText) {
 }
 
 async function displayMovieInfo(id) {
+  console.log("Entered displayMovieInfo: ", id);
+
   const movie = await getMovieDetails(id);
   const budget = movie.budget
     .toLocaleString("en-US", { style: "currency", currency: "USD" })
@@ -670,4 +674,5 @@ async function displayMovieInfo(id) {
     .style("width", `${svgWidth}px`);
 } // displayMovieInfo
 
-module.exports = { getListOfYearsFromDB };
+module.exports = { getListOfYearsFromDB, displayMovieInfo };
+window.displayMovieInfo = displayMovieInfo;
