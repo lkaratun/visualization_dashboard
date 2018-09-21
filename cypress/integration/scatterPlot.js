@@ -1,24 +1,6 @@
 // import * as app from "../../app";
-
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 let displayMovieInfoSpy;
-
-const testApp = {
-  outer() {
-    return setTimeout(this.inner, 1000);
-  },
-  inner: () => {
-    console.log("Inner called");
-  }
-};
-describe("TestApp", () => {
-  it("should spy on the inner function", async () => {
-    const innerSpy = cy.spy(testApp, "inner");
-    // testApp.inner();
-    testApp.outer().then(() => expect(innerSpy).not.to.be.called);
-    // expect(innerSpy).to.be.called;
-    // expect(innerSpy).to.be.called;
-  });
-});
 
 describe("Scatter plot", () => {
   before(() => {
@@ -74,13 +56,35 @@ describe("Scatter plot", () => {
   });
 
   it("Triggers the displayMovieInfo on click", async () => {
+    // cy.window().then(window => {
+    //   displayMovieInfoSpy = cy.spy(window, "displayMovieInfo");
+    //   cy.get("#scatterPlot")
+    //     .get("circle")
+    //     .eq(2)
+    //     .click({ force: true })
+    //     .then(() => expect(displayMovieInfoSpy).to.be.called);
+    // });
+    const window = await cy.window();
+    displayMovieInfoSpy = cy.spy(window, "displayMovieInfo");
+    await cy
+      .get("#scatterPlot")
+      .get("circle")
+      .eq(2)
+      .click({ force: true })
+      .then(() => expect(displayMovieInfoSpy).to.be.called);
+  });
+
+  it("StackOverflow", () => {
     cy.window().then(window => {
-      displayMovieInfoSpy = cy.spy(window, "displayMovieInfo");
+      const displayMovieInfoSpy2 = cy.spy(window, "displayMovieInfo");
+
       cy.get("#scatterPlot")
         .get("circle")
-        .eq(2)
+        .eq(0)
         .click({ force: true })
-        .then(() => expect(displayMovieInfoSpy).to.be.called);
+        .then(() => {
+          expect(displayMovieInfoSpy2).to.be.called;
+        });
     });
   });
 });

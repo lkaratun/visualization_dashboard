@@ -347,6 +347,7 @@ async function drawMap({ data }) {
     .on("mouseout", handleMouseOut)
     .on("click", d => {
       const countryName = codeNumericToLetter.get(d.id);
+      // Add country to the list of chosen ones if shift was pressed
       if (d3.event.shiftKey) {
         if (countriesChosen.includes(countryName)) {
           countriesChosen = countriesChosen.filter(
