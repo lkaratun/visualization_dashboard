@@ -68,7 +68,7 @@ svg {
 .plot {
   margin: 1%;
   display: block;
-  box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.48);
+  box-shadow: 2px 3px 10px 0px rgba(0, 0, 0, 0.48);
   padding: 1%;
   text-align: left;
 }
