@@ -180,7 +180,8 @@ async function findMovies({ countries, genres, years }) {
     popularity: 1,
     title: 1,
     posterPath: 1,
-    id: 1
+    id: 1,
+    releaseYear:1
   };
   const moviesCollection = await moviesCollectionPromise;
   return moviesCollection.find(query, { projection }).toArray();
