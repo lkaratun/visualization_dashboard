@@ -9,7 +9,7 @@ const svgWidth = 600;
 const svgHeight = 400;
 const padding = 40;
 const initialMinYear = 1950;
-const initialMaxYear = 1960;
+const initialMaxYear = 1951;
 const sliderLow = 1900;
 let yearsChosen = [initialMinYear, initialMaxYear];
 let countriesChosen = [];
@@ -25,6 +25,8 @@ const yLabel = "Viewer rating";
 const codeLetterToNumeric = new Map();
 const codeNumericToLetter = new Map();
 const codeNumericToName = new Map();
+const cache = new Map();
+window.cache = cache;
 
 const imgBaseUrl = "https://image.tmdb.org/t/p/w154/";
 const imgBaseUrlLarge = "https://image.tmdb.org/t/p/w185/";
@@ -79,6 +81,93 @@ function setUpNewSlider(minYear, maxYear) {
   });
 }
 
+async function refreshPlots({ years, countries, genres }) {
+  const {
+    missing: missingYears,
+    existing: existingYears
+  } = checkCacheForYearsIntervals(years);
+  if (missingYears.length > 0) {
+    loadScatterPlotDataFromDB({ years: missingYears, countries, genres }).then(
+      data => {
+        data.forEach(d => {
+          if (typeof d.voteAverage === "object") {
+            d.voteAverage = +d.voteAverage.$numberDouble;
+          }
+          if (typeof d.popularity === "object") {
+            d.popularity = +d.popularity.$numberDouble;
+          }
+          d.releaseYear = parseInt(d.releaseYear, 10);
+        });
+        // merge data from db and from cache
+        const cachedData = readCache(existingYears);
+        data = data.concat(cachedData);
+        drawScatterPlot({ data, years });
+        writeCache(missingYears, data);
+      }
+    );
+  } else {
+    drawScatterPlot({ data: readCache(existingYears, "scatterPlot"), years });
+  }
+
+  loadMapDataFromDB({ years, genres }).then(data => {
+    drawMap({ data });
+  });
+  loadBarChartDataFromDB({ years, countries }).then(data => {
+    drawBarChart({ data });
+  });
+}
+function checkCacheForYearsIntervals(years) {
+  const [minYear, maxYear] = years;
+  // We can assume that the range of cached years has to be contiguous
+  // since both sliders can't be moved at the same time
+  const [cachedMin, cachedMax] = d3.extent(Array.from(cache.keys()));
+  if (cache.has(minYear)) {
+    if (cache.has(maxYear))
+      return { missing: [], existing: [minYear, maxYear] };
+    return {
+      missing: [cachedMax + 1, maxYear],
+      existing: [minYear, cachedMax]
+    };
+  }
+  if (cache.has(maxYear))
+    return {
+      missing: [minYear, cachedMin - 1],
+      existing: [cachedMin, maxYear]
+    };
+  return { missing: [minYear, maxYear], existing: [] };
+}
+
+function readCache(years) {
+  const [minYear, maxYear] = years;
+  let res = [];
+  for (let year = minYear; year <= maxYear; year++) {
+    const chunk = cache.get(year);
+    res = res.concat(chunk);
+  }
+  return res;
+}
+
+function writeCache(years, data) {
+  const [minYear, maxYear] = years;
+  // Need to have year for each record
+
+  // Loop over each entry in data and put it in cache
+  data.forEach(entry => {
+    const year = entry["releaseYear"];
+
+    if (cache.has(year)) {
+      cache.get(year).push(entry);
+    } else {
+      cache.set(year, [entry]);
+    }
+  });
+
+  // Mark empty years with undefined's
+  for (let year = minYear; year <= maxYear; year++) {
+    if (!cache.has(year)) cache.set(year, []);
+  }
+}
+
 function loadScatterPlotDataFromDB({ years, countries, genres }) {
   const [startYear, endYear] = years;
   const countriesString = countries.length ? JSON.stringify(countries) : null;
@@ -104,26 +193,6 @@ function loadBarChartDataFromDB({ years, countries }) {
 function getMovieDetails(id) {
   const requestURL = `${backEndUrlBase}/getMovieById/${id}`;
   return fetch(requestURL, { credentials: "include" }).then(res => res.json());
-}
-
-async function refreshPlots({ years, countries, genres }) {
-  loadScatterPlotDataFromDB({ years, countries, genres }).then(data => {
-    data.forEach(d => {
-      if (typeof d.voteAverage === "object") {
-        d.voteAverage = +d.voteAverage.$numberDouble;
-      }
-      if (typeof d.popularity === "object") {
-        d.popularity = +d.popularity.$numberDouble;
-      }
-    });
-
-    drawScatterPlot({ data, years });
-  });
-
-  loadMapDataFromDB({ years, genres }).then(data => drawMap({ data }));
-  loadBarChartDataFromDB({ years, countries }).then(data =>
-    drawBarChart({ data })
-  );
 }
 
 async function drawScatterPlot({ data, years }) {
@@ -633,8 +702,6 @@ function addNote(selection, noteText) {
 }
 
 async function displayMovieInfo(id) {
-  console.log("Entered displayMovieInfo: ", id);
-
   const movie = await getMovieDetails(id);
   const budget = movie.budget
     .toLocaleString("en-US", { style: "currency", currency: "USD" })
