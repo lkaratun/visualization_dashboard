@@ -1,13 +1,7 @@
-// import * as app from "../../app";
-const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
-let displayMovieInfoSpy;
-
 describe("Scatter plot", () => {
   before(() => {
     cy.visit("http://localhost:1234", {
       onBeforeLoad() {
-        // console.log(app.displayMovieInfo);
-        // displayMovieInfoSpy = cy.spy(app, "displayMovieInfo");
         // console.log(app.displayMovieInfo);
       }
     });
@@ -55,36 +49,14 @@ describe("Scatter plot", () => {
     cy.get(".tooltip").should("be.visible");
   });
 
-  it("Triggers the displayMovieInfo on click", async () => {
-    // cy.window().then(window => {
-    //   displayMovieInfoSpy = cy.spy(window, "displayMovieInfo");
-    //   cy.get("#scatterPlot")
-    //     .get("circle")
-    //     .eq(2)
-    //     .click({ force: true })
-    //     .then(() => expect(displayMovieInfoSpy).to.be.called);
-    // });
-    const window = await cy.window();
-    displayMovieInfoSpy = cy.spy(window, "displayMovieInfo");
-    await cy
-      .get("#scatterPlot")
-      .get("circle")
-      .eq(2)
-      .click({ force: true })
-      .then(() => expect(displayMovieInfoSpy).to.be.called);
-  });
-
-  it("StackOverflow", () => {
-    cy.window().then(window => {
-      const displayMovieInfoSpy2 = cy.spy(window, "displayMovieInfo");
-
-      cy.get("#scatterPlot")
-        .get("circle")
-        .eq(0)
-        .click({ force: true })
-        .then(() => {
-          expect(displayMovieInfoSpy2).to.be.called;
-        });
-    });
-  });
+  // it("Triggers the displayMovieInfo on click", async () => {
+  //   const window = await cy.window();
+  //   const displayMovieInfoSpy = cy.spy(window, "displayMovieInfo");
+  //   await cy
+  //     .get("#scatterPlot")
+  //     .get("circle")
+  //     .eq(2)
+  //     .click({ force: true })
+  //     .then(() => expect(displayMovieInfoSpy).to.be.called);
+  // });
 });
