@@ -13,7 +13,11 @@ app.use(
     origin: [
       "http://localhost:1234",
       "https://localhost:1234",
+      "http://localhost:8080",
+      "https://localhost:8080",
       "http://levkaratun.com:1234",
+      "https://levkaratun.com:1234",
+      "http://levkaratun.com",
       "https://levkaratun.com"
     ],
     credentials: true
@@ -181,7 +185,7 @@ async function findMovies({ countries, genres, years }) {
     title: 1,
     posterPath: 1,
     id: 1,
-    releaseYear:1
+    releaseYear: 1
   };
   const moviesCollection = await moviesCollectionPromise;
   return moviesCollection.find(query, { projection }).toArray();
