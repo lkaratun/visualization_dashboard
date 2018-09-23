@@ -3,6 +3,7 @@
     "colorbrewer",
     "imdb",
     "nouislider",
+    "spdy",
     "topojson"
   ],
   "explorer.sortOrder": "modified"
