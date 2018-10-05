@@ -88,23 +88,34 @@ function setUpNewSlider(minYear, maxYear) {
 }
 
 async function refreshPlots({ years, countries, genres }) {
-  const {
-    missing: missingYears,
-    existing: existingYears
-  } = checkCacheForYearsIntervals(years);
-  if (missingYears.length > 0) {
-    loadScatterPlotDataFromDB({ years: missingYears, countries, genres }).then(
-      data => {
+  // Country and genre filters are off
+  if (countries.length == 0 && genres.length == 0) {
+    const {
+      missing: missingYears,
+      existing: existingYears
+    } = checkCacheForYearsIntervals(years);
+    if (missingYears.length > 0) {
+      loadScatterPlotDataFromDB({
+        years: missingYears,
+        countries,
+        genres
+      }).then(data => {
         data = cleanData(data);
         // merge data from db and from cache
         const cachedData = readCache(existingYears);
         data = data.concat(cachedData);
         drawScatterPlot({ data, years });
         writeCache(missingYears, data);
-      }
-    );
-  } else {
-    drawScatterPlot({ data: readCache(existingYears, "scatterPlot"), years });
+      });
+    } else {
+      drawScatterPlot({ data: readCache(existingYears, "scatterPlot"), years });
+    }
+  }
+  // Country of genre filters are on -> don't use cache
+  else {
+    loadScatterPlotDataFromDB({ years, countries, genres }).then(data => {
+      drawScatterPlot({ data: cleanData(data), years });
+    });
   }
 
   loadMapDataFromDB({ years, genres }).then(data => {
