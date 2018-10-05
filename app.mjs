@@ -1,5 +1,6 @@
 import * as countryCodesObj from "./countryCodes.json";
 import * as mapData from "./mapData.json";
+import * as initialData from "./initialData.json";
 
 const countryCodes = Object.values(countryCodesObj);
 
@@ -45,6 +46,11 @@ window.onload = async function init() {
     codeNumericToName.set(d["country-code"], d.name);
   });
 
+  writeCache(
+    [initialMinYear, initialMaxYear],
+    cleanData(initialData.scatterPlot)
+  );
+
   refreshPlots({
     years: [initialMinYear, initialMaxYear],
     countries: countriesChosen,
@@ -89,15 +95,7 @@ async function refreshPlots({ years, countries, genres }) {
   if (missingYears.length > 0) {
     loadScatterPlotDataFromDB({ years: missingYears, countries, genres }).then(
       data => {
-        data.forEach(d => {
-          if (typeof d.voteAverage === "object") {
-            d.voteAverage = +d.voteAverage.$numberDouble;
-          }
-          if (typeof d.popularity === "object") {
-            d.popularity = +d.popularity.$numberDouble;
-          }
-          d.releaseYear = parseInt(d.releaseYear, 10);
-        });
+        data = cleanData(data);
         // merge data from db and from cache
         const cachedData = readCache(existingYears);
         data = data.concat(cachedData);
@@ -116,6 +114,19 @@ async function refreshPlots({ years, countries, genres }) {
     drawBarChart({ data });
   });
 }
+function cleanData(data) {
+  return data.map(d => {
+    if (typeof d.voteAverage === "object") {
+      d.voteAverage = +d.voteAverage.$numberDouble;
+    }
+    if (typeof d.popularity === "object") {
+      d.popularity = +d.popularity.$numberDouble;
+    }
+    d.releaseYear = parseInt(d.releaseYear, 10);
+    return d;
+  });
+}
+
 function checkCacheForYearsIntervals(years) {
   const [minYear, maxYear] = years;
   // We can assume that the range of cached years has to be contiguous
