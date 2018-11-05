@@ -14,7 +14,6 @@ let yearsChosen = [initialMinYear, initialMaxYear];
 let countriesChosen = [];
 let genresChosen = [];
 
-const codeLetterToNumeric = new Map();
 const codeNumericToLetter = new Map();
 const codeNumericToName = new Map();
 const cache = new Map();
@@ -27,7 +26,6 @@ window.onload = async function init() {
   });
 
   countryCodes.forEach(d => {
-    codeLetterToNumeric.set(d["alpha-2"], d["country-code"]);
     codeNumericToLetter.set(d["country-code"], d["alpha-2"]);
     codeNumericToName.set(d["country-code"], d.name);
   });
