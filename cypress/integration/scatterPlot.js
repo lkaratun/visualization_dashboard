@@ -48,15 +48,4 @@ describe("Scatter plot", () => {
       .trigger("mouseover", { force: true });
     cy.get(".tooltip").should("be.visible");
   });
-
-  // it("Triggers the displayMovieInfo on click", async () => {
-  //   const window = await cy.window();
-  //   const displayMovieInfoSpy = cy.spy(window, "displayMovieInfo");
-  //   await cy
-  //     .get("#scatterPlot")
-  //     .get("circle")
-  //     .eq(2)
-  //     .click({ force: true })
-  //     .then(() => expect(displayMovieInfoSpy).to.be.called);
-  // });
 });

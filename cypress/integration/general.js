@@ -8,4 +8,7 @@ describe("Visualization in general", () => {
   it("Should contain 3 svg elements", () => {
     cy.get("svg").should(svgs => expect(svgs).to.have.length(3));
   });
+  it("Should contain a slider", () => {
+    cy.get("#scale-slider").should("be.visible");
+  });
 });
