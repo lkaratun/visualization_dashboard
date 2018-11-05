@@ -2,6 +2,7 @@ node_modules
 node_modules_backup/*
 IMDB
 dist
+reports
 .cache
 .env
 *.crt
@@ -13,3 +14,4 @@ app.babel.js
 movies_metadata.csv
 movies_metadata_orig.csv
 info.txt
+*.mp4

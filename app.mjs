@@ -1,8 +1,6 @@
-import * as countryCodesObj from "./countryCodes.json";
-import * as mapData from "./mapData.json";
-import * as initialData from "./initialData.json";
-
-const countryCodes = Object.values(countryCodesObj);
+import countryCodes from "./countryCodes.json";
+import mapData from "./mapData.json";
+import initialData from "./initialData.json";
 
 const colorbrewer = require("colorbrewer");
 
@@ -16,28 +14,16 @@ let yearsChosen = [initialMinYear, initialMaxYear];
 let countriesChosen = [];
 let genresChosen = [];
 
-let colorScale;
-const xDataSelector = "budget";
-const yDataSelector = "voteAverage";
-const rDataSelector = "popularity";
-const cDataSelector = "runtime";
-const xLabel = "Movie budget";
-const yLabel = "Viewer rating";
 const codeLetterToNumeric = new Map();
 const codeNumericToLetter = new Map();
 const codeNumericToName = new Map();
 const cache = new Map();
-window.cache = cache;
 
-const imgBaseUrl = "https://image.tmdb.org/t/p/w154/";
-const imgBaseUrlLarge = "https://image.tmdb.org/t/p/w185/";
-
-// const backEndUrlBase = "https://localhost:3000";
-const backEndUrlBase = "https://levkaratun.com:3000";
+const backEndUrl = "https://levkaratun.com:3000";
 
 window.onload = async function init() {
   getListOfYearsFromDB().then(years => {
-    setUpNewSlider(d3.min(years), d3.max(years));
+    setUpNewSlider(sliderLow, d3.max(years));
   });
 
   countryCodes.forEach(d => {
@@ -59,7 +45,7 @@ window.onload = async function init() {
 };
 
 function getListOfYearsFromDB() {
-  const requestURL = `${backEndUrlBase}/years`;
+  const requestURL = `${backEndUrl}/years`;
   return fetch(requestURL)
     .then(res => res.json())
     .then(years => years.map(d => +d));
@@ -69,7 +55,7 @@ function setUpNewSlider(minYear, maxYear) {
   $("#scale-slider")
     .slider({
       max: maxYear,
-      min: sliderLow,
+      min: minYear,
       values: [initialMinYear, initialMaxYear],
       range: true,
       step: 1
@@ -89,7 +75,7 @@ function setUpNewSlider(minYear, maxYear) {
 
 async function refreshPlots({ years, countries, genres }) {
   // Country and genre filters are off
-  if (countries.length == 0 && genres.length == 0) {
+  if (countries.length === 0 && genres.length === 0) {
     const {
       missing: missingYears,
       existing: existingYears
@@ -172,7 +158,6 @@ function readCache(years) {
 function writeCache(years, data) {
   const [minYear, maxYear] = years;
   // Need to have year for each record
-
   // Loop over each entry in data and put it in cache
   data.forEach(entry => {
     const year = entry["releaseYear"];
@@ -194,26 +179,26 @@ function loadScatterPlotDataFromDB({ years, countries, genres }) {
   const [startYear, endYear] = years;
   const countriesString = countries.length ? JSON.stringify(countries) : null;
   const genresString = genres.length ? JSON.stringify(genres) : null;
-  const requestURL = `${backEndUrlBase}/getScatterPlotData/${countriesString}/${genresString}/${startYear}-${endYear}`;
+  const requestURL = `${backEndUrl}/getScatterPlotData/${countriesString}/${genresString}/${startYear}-${endYear}`;
   return fetch(requestURL, { credentials: "include" }).then(res => res.json());
 }
 
 function loadMapDataFromDB({ years, genres }) {
   const [startYear, endYear] = years;
   const genresString = genres.length ? JSON.stringify(genres) : null;
-  const requestURL = `${backEndUrlBase}/getMapData/${genresString}/${startYear}-${endYear}`;
+  const requestURL = `${backEndUrl}/getMapData/${genresString}/${startYear}-${endYear}`;
   return fetch(requestURL, { credentials: "include" }).then(res => res.json());
 }
 
 function loadBarChartDataFromDB({ years, countries }) {
   const [startYear, endYear] = years;
   const letterCodes = countries.length ? JSON.stringify(countries) : null;
-  const requestURL = `${backEndUrlBase}/getBarChartData/${letterCodes}/${startYear}-${endYear}`;
+  const requestURL = `${backEndUrl}/getBarChartData/${letterCodes}/${startYear}-${endYear}`;
   return fetch(requestURL, { credentials: "include" }).then(res => res.json());
 }
 
 function getMovieDetails(id) {
-  const requestURL = `${backEndUrlBase}/getMovieById/${id}`;
+  const requestURL = `${backEndUrl}/getMovieById/${id}`;
   return fetch(requestURL, { credentials: "include" }).then(res => res.json());
 }
 
@@ -236,6 +221,12 @@ async function drawScatterPlot({ data, years }) {
     return;
   }
 
+  const xDataSelector = "budget";
+  const yDataSelector = "voteAverage";
+  const rDataSelector = "popularity";
+  const xLabel = "Movie budget";
+  const yLabel = "Viewer rating";
+
   const xScale = d3
     .scaleLinear()
     .domain(d3.extent(data, d => d[xDataSelector]))
@@ -253,10 +244,6 @@ async function drawScatterPlot({ data, years }) {
     .axisLeft(yScale)
     .tickSize(-svgWidth + 2 * padding)
     .tickSizeOuter(0);
-  colorScale = d3
-    .scaleLinear()
-    .domain(d3.extent(data, d => d[cDataSelector]))
-    .range([d3.rgb("#66ff33"), d3.rgb("#cc0000")]);
   const radiusScale = d3
     .scaleLinear()
     .domain(d3.extent(data, d => d[rDataSelector]))
@@ -324,6 +311,7 @@ async function drawScatterPlot({ data, years }) {
 
   // tooltips
   const tooltip = d3.select(".tooltip");
+  const imgBaseUrl = "https://image.tmdb.org/t/p/w154/";
   scatterPlot
     .selectAll("circle")
     .on("mousemove", d => {
@@ -367,7 +355,7 @@ async function drawMap({ data }) {
     countryCodeToMovieCount.set(country._id, country.count)
   );
 
-  colorScale = d3
+  const colorScale = d3
     .scaleLinear()
     .domain(d3.extent(Array.from(countryCodeToMovieCount.values())))
     .range([colorbrewer.Blues[5][0], colorbrewer.Blues[5][4]]);
@@ -748,6 +736,7 @@ async function displayMovieInfo(id) {
     typeof movie.voteAverage === "object"
       ? +movie.voteAverage.$numberDouble
       : movie.voteAverage;
+  const imgBaseUrlLarge = "https://image.tmdb.org/t/p/w185/";
   const htmlString = `
   <img style="display: block; float:left; margin: 1%; height: auto; width: 256px;" src="${imgBaseUrlLarge +
     movie.posterPath}" alt="Image poster not found" />

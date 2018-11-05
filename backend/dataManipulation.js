@@ -27,7 +27,7 @@ async function fillReleaseYears() {
     await moviesCollection.update(
       { _id: document._id },
       { $set: { releaseYear } },
-      (err, status) => {
+      err => {
         assert.equal(err, null);
       }
     );
