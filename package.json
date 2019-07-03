@@ -28,7 +28,7 @@
     "eslint-plugin-import": "^2.12.0",
     "eslint-plugin-prettier": "^2.6.0",
     "http-server": "^0.11.1",
-    "jest": "^23.4.1",
+    "jest": "^24.8.0",
     "jest-fetch-mock": "^1.6.5",
     "parcel-plugin-clean-dist": "0.0.6",
     "prettier": "^1.13.5",
