@@ -10,12 +10,19 @@ const spdy = require("spdy");
 const app = express();
 app.use(
   cors({
-    origin: ["https://levkaratun.com", "https://api.levkaratun.com:3000"],
+    origin: [
+      "https://movie-data-visualization.levkaratun.com"
+      // "https://api.levkaratun.com:3000",
+      // "https://ec2-18-188-149-78.us-east-2.compute.amazonaws.com:3000",
+      // "https://localhost:1234",
+      // "http://localhost:1234",
+      // "https://localhost:3000",
+      // "http://localhost:3000"
+    ],
+
     credentials: true
   })
 );
-const router = express.Router();
-app.use("", router);
 app.use(compression());
 
 const { keyPath, certPath } = process.env;
@@ -29,7 +36,7 @@ spdy
   )
   .listen(3000, () => console.log("Server is listening to https requests on port 3000"));
 
-router.get("/convert/:fileName", async (req, res) => {
+app.get("/convert/:fileName", async (req, res) => {
   try {
     const err = await convertCsvToDsv(req.params.fileName);
     if (err) {
@@ -42,7 +49,7 @@ router.get("/convert/:fileName", async (req, res) => {
   }
 });
 
-router.get("/getScatterPlotData/:countries/:genres/:startYear-:endYear", async (req, res) => {
+app.get("/getScatterPlotData/:countries/:genres/:startYear-:endYear", async (req, res) => {
   try {
     const [err, movies] = await to(
       findMovies({
@@ -62,7 +69,7 @@ router.get("/getScatterPlotData/:countries/:genres/:startYear-:endYear", async (
   }
 });
 
-router.get("/getBarChartData/:countries/:startYear-:endYear", async (req, res) => {
+app.get("/getBarChartData/:countries/:startYear-:endYear", async (req, res) => {
   try {
     const [err, movies] = await to(
       countMoviesPerGenre({
@@ -81,7 +88,7 @@ router.get("/getBarChartData/:countries/:startYear-:endYear", async (req, res) =
   }
 });
 
-router.get("/getMapData/:genres/:startYear-:endYear", async (req, res) => {
+app.get("/getMapData/:genres/:startYear-:endYear", async (req, res) => {
   try {
     const [err, movieCounts] = await to(
       countMoviesPerCountry({
@@ -100,7 +107,7 @@ router.get("/getMapData/:genres/:startYear-:endYear", async (req, res) => {
   }
 });
 
-router.get("/getMovieById/:id", async (req, res) => {
+app.get("/getMovieById/:id", async (req, res) => {
   try {
     const [err, movie] = await to(findMovieById(+req.params.id));
     if (err) {
@@ -114,17 +121,18 @@ router.get("/getMovieById/:id", async (req, res) => {
   }
 });
 
-router.get("/years", async (req, res) => {
+app.get("/years", async (req, res) => {
   try {
     console.log("Requested /years");
     const years = await listDistinctYears();
-    res.json(years);
+    console.log({ years });
+    res.send(years);
   } catch (e) {
     console.error(e);
   }
 });
 
-router.get("/", async (req, res) => {
+app.get("/", async (req, res) => {
   console.log("Get /");
   try {
     const movies = await readTopNMoviesFromDB(20);
