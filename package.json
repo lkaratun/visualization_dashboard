@@ -40,7 +40,7 @@
     "test": "jest",
     "lint": "eslint app",
     "build": "parcel build index.html --public-url ./ --detailed-report --no-source-maps",
-    "start": "parcel index.html --https --log-level 4",
+    "start": "parcel index.html --https",
     "run-prod": "http-server dist"
   },
   "repository": {

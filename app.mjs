@@ -1,6 +1,7 @@
 import countryCodes from "./countryCodes.json";
 import mapData from "./mapData.json";
 import initialData from "./initialData.json";
+import config from "./config.json";
 
 const colorbrewer = require("colorbrewer");
 
@@ -18,7 +19,7 @@ const codeNumericToLetter = new Map();
 const codeNumericToName = new Map();
 const cache = new Map();
 
-const backEndUrl = "https://levkaratun.com:3000";
+const backEndUrl = config.backendUrl;
 
 window.onload = async function init() {
   getListOfYearsFromDB().then(years => {
@@ -30,10 +31,7 @@ window.onload = async function init() {
     codeNumericToName.set(d["country-code"], d.name);
   });
 
-  writeCache(
-    [initialMinYear, initialMaxYear],
-    cleanData(initialData.scatterPlot)
-  );
+  writeCache([initialMinYear, initialMaxYear], cleanData(initialData.scatterPlot));
 
   refreshPlots({
     years: [initialMinYear, initialMaxYear],
@@ -44,7 +42,7 @@ window.onload = async function init() {
 
 function getListOfYearsFromDB() {
   const requestURL = `${backEndUrl}/years`;
-  return fetch(requestURL)
+  return fetch(requestURL, { credentials: "include" })
     .then(res => res.json())
     .then(years => years.map(d => +d));
 }
@@ -74,10 +72,7 @@ function setUpNewSlider(minYear, maxYear) {
 async function refreshPlots({ years, countries, genres }) {
   // Country and genre filters are off
   if (countries.length === 0 && genres.length === 0) {
-    const {
-      missing: missingYears,
-      existing: existingYears
-    } = checkCacheForYearsIntervals(years);
+    const { missing: missingYears, existing: existingYears } = checkCacheForYearsIntervals(years);
     if (missingYears.length > 0) {
       loadScatterPlotDataFromDB({
         years: missingYears,
@@ -128,8 +123,7 @@ function checkCacheForYearsIntervals(years) {
   // since both sliders can't be moved at the same time
   const [cachedMin, cachedMax] = d3.extent(Array.from(cache.keys()));
   if (cache.has(minYear)) {
-    if (cache.has(maxYear))
-      return { missing: [], existing: [minYear, maxYear] };
+    if (cache.has(maxYear)) return { missing: [], existing: [minYear, maxYear] };
     return {
       missing: [cachedMax + 1, maxYear],
       existing: [minYear, cachedMax]
@@ -298,10 +292,7 @@ async function drawScatterPlot({ data, years }) {
     .append("circle")
     .merge(points)
     .attr("cx", d => (d[xDataSelector] ? xScale(d[xDataSelector]) : padding))
-    .attr(
-      "cy",
-      d => (d[yDataSelector] ? yScale(d[yDataSelector]) : svgHeight - padding)
-    )
+    .attr("cy", d => (d[yDataSelector] ? yScale(d[yDataSelector]) : svgHeight - padding))
     .attr("fill", "#444444")
     .attr("r", d => radiusScale(d[rDataSelector]));
 
@@ -318,13 +309,9 @@ async function drawScatterPlot({ data, years }) {
         .style("display", "block")
         .html(
           `<b style="display: block">${d.title}</b>
-        <img style="display: block" src="${imgBaseUrl +
-          d.posterPath}" alt="" />`
+        <img style="display: block" src="${imgBaseUrl + d.posterPath}" alt="" />`
         )
-        .style(
-          "left",
-          `${d3.event.x /* - tooltip.node().offsetWidth/2 */ + 5}px`
-        )
+        .style("left", `${d3.event.x /* - tooltip.node().offsetWidth/2 */ + 5}px`)
         .style("top", `${d3.event.pageY}px`);
     })
     // .on("mouseout", () => tooltip.style("opacity", 0));
@@ -349,9 +336,7 @@ async function drawMap({ data }) {
   const geoData = topojson.feature(mapData, mapData.objects.countries).features;
 
   const countryCodeToMovieCount = new Map();
-  data.forEach(country =>
-    countryCodeToMovieCount.set(country._id, country.count)
-  );
+  data.forEach(country => countryCodeToMovieCount.set(country._id, country.count));
 
   const colorScale = d3
     .scaleLinear()
@@ -383,26 +368,14 @@ async function drawMap({ data }) {
     .merge(worldMap)
     .attr("d", path)
     .attr("fill", d => {
-      const movieCount = countryCodeToMovieCount.get(
-        codeNumericToLetter.get(d.id)
-      );
+      const movieCount = countryCodeToMovieCount.get(codeNumericToLetter.get(d.id));
       if (movieCount) {
         return colorScale(movieCount);
       }
       return defaultCountryFillColor;
     })
-    .attr(
-      "stroke",
-      d =>
-        countriesChosen.includes(codeNumericToLetter.get(d.id))
-          ? "#444444"
-          : "blue"
-    )
-    .attr(
-      "stroke-width",
-      d =>
-        countriesChosen.includes(codeNumericToLetter.get(d.id)) ? "1px" : "0"
-    );
+    .attr("stroke", d => (countriesChosen.includes(codeNumericToLetter.get(d.id)) ? "#444444" : "blue"))
+    .attr("stroke-width", d => (countriesChosen.includes(codeNumericToLetter.get(d.id)) ? "1px" : "0"));
 
   // Tooltips and click actions
   d3.select("#worldMap").on("click", () => {
@@ -427,17 +400,13 @@ async function drawMap({ data }) {
       // Add country to the list of chosen ones if shift was pressed
       if (d3.event.shiftKey) {
         if (countriesChosen.includes(countryName)) {
-          countriesChosen = countriesChosen.filter(
-            entry => entry !== countryName
-          );
+          countriesChosen = countriesChosen.filter(entry => entry !== countryName);
         } else {
           countriesChosen.push(countryName);
         }
       }
       // Country was the only one chosen
-      else if (
-        JSON.stringify(countriesChosen) === JSON.stringify([countryName])
-      ) {
+      else if (JSON.stringify(countriesChosen) === JSON.stringify([countryName])) {
         countriesChosen = [];
       }
       // Multiple or no countries were chosen
@@ -464,10 +433,7 @@ async function drawMap({ data }) {
       )
       .style(
         "top",
-        `${coords[1] -
-          35 +
-          document.getElementById("worldMap").getBoundingClientRect().y +
-          window.pageYOffset}px`
+        `${coords[1] - 35 + document.getElementById("worldMap").getBoundingClientRect().y + window.pageYOffset}px`
       );
   }
   function handleMouseOut() {
@@ -475,10 +441,7 @@ async function drawMap({ data }) {
   }
 
   addLabel(d3.select("#worldMap"), "Number of movies per country");
-  addNote(
-    d3.select("#worldMap"),
-    "(click to filter by country, shift+click to select multiple countries)"
-  );
+  addNote(d3.select("#worldMap"), "(click to filter by country, shift+click to select multiple countries)");
 
   // Color legend (gradient)
   const legendWidth = svgWidth * 0.8;
@@ -557,14 +520,11 @@ function drawBarChart({ data }) {
   // Number of movies per genre
   const genreToMovieCount = new Map();
   data.forEach(genre => genreToMovieCount.set(genre._id, genre.count));
-  const genreData = Array.from(genreToMovieCount.entries()).sort(
-    (a, b) => b[1] - a[1]
-  );
+  const genreData = Array.from(genreToMovieCount.entries()).sort((a, b) => b[1] - a[1]);
 
   const barPadding = 3;
   const barWidth = Math.min(
-    (svgWidth - padding * 2) / Array.from(genreToMovieCount.values()).length -
-      barPadding,
+    (svgWidth - padding * 2) / Array.from(genreToMovieCount.values()).length - barPadding,
     svgWidth / 10
   );
   const bars = barChart
@@ -674,10 +634,7 @@ function drawBarChart({ data }) {
     .on("click", d => handleClick(d[0]));
 
   addLabel(barChart, "Number of movies per genre");
-  addNote(
-    barChart,
-    "(click to filter by genre, shift+click to select multiple genres)"
-  );
+  addNote(barChart, "(click to filter by genre, shift+click to select multiple genres)");
 
   // Left axis
   barChart
@@ -711,13 +668,9 @@ function addNote(selection, noteText) {
 
 async function displayMovieInfo(id) {
   const movie = await getMovieDetails(id);
-  const budget = movie.budget
-    .toLocaleString("en-US", { style: "currency", currency: "USD" })
-    .slice(0, -3);
+  const budget = movie.budget.toLocaleString("en-US", { style: "currency", currency: "USD" }).slice(0, -3);
   const runTime =
-    movie.runtime < 60
-      ? `${movie.runtime} min`
-      : `${Math.floor(movie.runtime / 60)} hr ${movie.runtime % 60} min`;
+    movie.runtime < 60 ? `${movie.runtime} min` : `${Math.floor(movie.runtime / 60)} hr ${movie.runtime % 60} min`;
   let countries = "";
   movie.productionCountries.forEach(country => {
     countries += `${country.name}, `;
@@ -730,10 +683,7 @@ async function displayMovieInfo(id) {
   // get rid or comma and space after the last country
   countries = countries.slice(0, -2).replace("United States of America", "USA");
 
-  const rating =
-    typeof movie.voteAverage === "object"
-      ? +movie.voteAverage.$numberDouble
-      : movie.voteAverage;
+  const rating = typeof movie.voteAverage === "object" ? +movie.voteAverage.$numberDouble : movie.voteAverage;
   const imgBaseUrlLarge = "https://image.tmdb.org/t/p/w185/";
   const htmlString = `
   <img style="display: block; float:left; margin: 1%; height: auto; width: 256px;" src="${imgBaseUrlLarge +
