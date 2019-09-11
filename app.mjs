@@ -1,8 +1,7 @@
 import countryCodes from "./countryCodes.json";
 import mapData from "./mapData.json";
 import initialData from "./initialData.json";
-
-require("dotenv").load();
+import config from "./config.json";
 
 const colorbrewer = require("colorbrewer");
 
@@ -20,7 +19,7 @@ const codeNumericToLetter = new Map();
 const codeNumericToName = new Map();
 const cache = new Map();
 
-const backEndUrl = process.env.backendUrl;
+const backEndUrl = config.backendUrl;
 
 window.onload = async function init() {
   getListOfYearsFromDB().then(years => {
