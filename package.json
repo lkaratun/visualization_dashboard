@@ -15,6 +15,7 @@
     "babel-preset-stage-0": "^6.24.1",
     "babel-runtime": "^6.26.0",
     "colorbrewer": "^1.3.0",
+    "dotenv": "^8.1.0",
     "parcel": "^1.12.3",
     "webpack": "^4.16.3"
   },
@@ -40,7 +41,7 @@
     "test": "jest",
     "lint": "eslint app",
     "build": "parcel build index.html --public-url ./ --detailed-report --no-source-maps",
-    "start": "parcel index.html --https --log-level 4",
+    "start": "parcel index.html --https",
     "run-prod": "http-server dist"
   },
   "repository": {
