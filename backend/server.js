@@ -10,16 +10,7 @@ const spdy = require("spdy");
 const app = express();
 app.use(
   cors({
-    origin: [
-      "http://localhost:1234",
-      "https://localhost:1234",
-      "http://localhost:8080",
-      "https://localhost:8080",
-      "http://levkaratun.com:1234",
-      "https://levkaratun.com:1234",
-      "http://levkaratun.com",
-      "https://levkaratun.com"
-    ],
+    origin: ["https://levkaratun.com", "https://api.levkaratun.com:3000"],
     credentials: true
   })
 );
@@ -36,9 +27,7 @@ spdy
     },
     app
   )
-  .listen(3000, () =>
-    console.log("Server is listening to https requests on port 3000")
-  );
+  .listen(3000, () => console.log("Server is listening to https requests on port 3000"));
 
 router.get("/convert/:fileName", async (req, res) => {
   try {
@@ -53,50 +42,44 @@ router.get("/convert/:fileName", async (req, res) => {
   }
 });
 
-router.get(
-  "/getScatterPlotData/:countries/:genres/:startYear-:endYear",
-  async (req, res) => {
-    try {
-      const [err, movies] = await to(
-        findMovies({
-          countries: JSON.parse(req.params.countries),
-          genres: JSON.parse(req.params.genres),
-          years: [req.params.startYear, req.params.endYear]
-        })
-      );
-      if (err) {
-        console.error(err);
-        res.send(err);
-      } else {
-        res.send(movies);
-      }
-    } catch (e) {
-      console.log(e);
+router.get("/getScatterPlotData/:countries/:genres/:startYear-:endYear", async (req, res) => {
+  try {
+    const [err, movies] = await to(
+      findMovies({
+        countries: JSON.parse(req.params.countries),
+        genres: JSON.parse(req.params.genres),
+        years: [req.params.startYear, req.params.endYear]
+      })
+    );
+    if (err) {
+      console.error(err);
+      res.send(err);
+    } else {
+      res.send(movies);
     }
+  } catch (e) {
+    console.log(e);
   }
-);
+});
 
-router.get(
-  "/getBarChartData/:countries/:startYear-:endYear",
-  async (req, res) => {
-    try {
-      const [err, movies] = await to(
-        countMoviesPerGenre({
-          countries: JSON.parse(req.params.countries),
-          years: [req.params.startYear, req.params.endYear]
-        })
-      );
-      if (err) {
-        console.error(err);
-        res.send(err);
-      } else {
-        res.send(movies);
-      }
-    } catch (e) {
-      console.log(e);
+router.get("/getBarChartData/:countries/:startYear-:endYear", async (req, res) => {
+  try {
+    const [err, movies] = await to(
+      countMoviesPerGenre({
+        countries: JSON.parse(req.params.countries),
+        years: [req.params.startYear, req.params.endYear]
+      })
+    );
+    if (err) {
+      console.error(err);
+      res.send(err);
+    } else {
+      res.send(movies);
     }
+  } catch (e) {
+    console.log(e);
   }
-);
+});
 
 router.get("/getMapData/:genres/:startYear-:endYear", async (req, res) => {
   try {
@@ -133,6 +116,7 @@ router.get("/getMovieById/:id", async (req, res) => {
 
 router.get("/years", async (req, res) => {
   try {
+    console.log("Requested /years");
     const years = await listDistinctYears();
     res.json(years);
   } catch (e) {
@@ -141,6 +125,7 @@ router.get("/years", async (req, res) => {
 });
 
 router.get("/", async (req, res) => {
+  console.log("Get /");
   try {
     const movies = await readTopNMoviesFromDB(20);
     res.json(movies);
@@ -150,9 +135,7 @@ router.get("/", async (req, res) => {
 });
 
 const moviesCollectionPromise = (function setUpDBConnection() {
-  const dbUrl = `mongodb://${process.env.dbUserName}:${
-    process.env.dbPassword
-  }@localhost:27017/moviesDB`;
+  const dbUrl = `mongodb://${process.env.dbUserName}:${process.env.dbPassword}@localhost:27017/moviesDB`;
   return MongoClient.connect(dbUrl)
     .then(client => client.db("moviesDB").collection("movies"))
     .catch(err => console.log(err));
@@ -174,8 +157,7 @@ async function findMovies({ countries, genres, years }) {
     voteAverage: { $exists: true },
     popularity: { $exists: true }
   };
-  if (countries !== null)
-    query["productionCountries.letterCode"] = { $in: countries };
+  if (countries !== null) query["productionCountries.letterCode"] = { $in: countries };
   if (genres !== null) query.genres = { $in: genres };
   const projection = {
     _id: 0,
@@ -246,9 +228,7 @@ async function convertCsvToDsv(fileName) {
     return null;
   }
 
-  const [err, movies] = await to(
-    csvtojson({ delimiter: "," }).fromFile(fileName)
-  );
+  const [err, movies] = await to(csvtojson({ delimiter: "," }).fromFile(fileName));
   if (err) {
     console.log(err);
     return err;
@@ -299,8 +279,12 @@ function convertArrayOfObjectsToString(data, args) {
 }
 
 async function readTopNMoviesFromDB(movieCount) {
+  console.log("entered readTopNMoviesFromDB");
   const moviesCollection = await moviesCollectionPromise;
-  return moviesCollection.find({}, { limit: movieCount }).toArray();
+  console.log("received moviesCollection");
+  const res = moviesCollection.find({}, { limit: movieCount }).toArray();
+  console.log(res);
+  return res;
 }
 
 function to(promise) {
