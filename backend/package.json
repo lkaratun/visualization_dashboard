@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "nodemon server.js",
+    "start:prod": "forever start -a server.js",
+    "stop:prod": "forever stop server.js"
   },
   "keywords": [],
   "author": "",
@@ -17,12 +19,13 @@
     "csvtojson": "^2.0.4",
     "dotenv": "^6.0.0",
     "express": "^4.16.3",
+    "forever": "^1.0.0",
     "fs": "0.0.1-security",
     "mongodb": "^3.1.1",
     "mongoose": "^5.6.2",
     "spdy": "^3.4.7"
   },
   "devDependencies": {
-    "nodemon": "^1.18.3"
+    "nodemon": "^1.19.2"
   }
 }
