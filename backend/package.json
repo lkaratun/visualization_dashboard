@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon server.js",
     "start:prod": "forever start -a server.js",
-    "stop:prod": "forever stop server.js"
+    "stop": "forever stop server.js",
+    "restart": "forever restart server.js"
   },
   "keywords": [],
   "author": "",
