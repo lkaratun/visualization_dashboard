@@ -657,7 +657,7 @@ async function displayMovieInfo(id) {
   const htmlString = `
   <img style="display: block; float:left; margin: 1%; height: auto; width: 256px;" src="${
     imgBaseUrlLarge + movie.posterPath
-  }" alt="Image poster not found" onerror="this.onerror=null;this.src='https://i1.lensdump.com/i/jlHAck.png';" />
+  }" alt="Image poster not found" onerror="this.onerror=null;this.src='https://vectr.com/lkaratun/a2u7kvBIUz.svg?width=256&height=320&select=a2u7kvBIUzpage0';" />
   <h4 style="text-align: center">${movie.title}</h4>
   <h5>Year: ${movie.releaseYear}<br>
   ${countries}<br>
