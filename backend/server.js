@@ -26,15 +26,17 @@ app.use(
 app.use(compression());
 
 const { keyPath, certPath } = process.env;
-spdy
-  .createServer(
-    {
-      key: fs.readFileSync(keyPath),
-      cert: fs.readFileSync(certPath)
-    },
-    app
-  )
-  .listen(3000, () => console.log("Server is listening to https requests on port 3000"));
+// spdy
+//   .createServer(
+//     {
+//       key: fs.readFileSync(keyPath),
+//       cert: fs.readFileSync(certPath)
+//     },
+//     app
+//   )
+//   .listen(3000, () => console.log("Server is listening to https requests on port 3000"));
+app.listen(3000, () => console.log("Server is listening to http requests on port 3000"));
+
 
 app.get("/convert/:fileName", async (req, res) => {
   try {

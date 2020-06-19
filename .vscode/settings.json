@@ -10,5 +10,10 @@
     "svgs",
     "topojson"
   ],
-  "explorer.sortOrder": "modified"
+  "explorer.sortOrder": "modified",
+  "workbench.colorCustomizations": {
+    "activityBar.background": "#5C033B",
+    "titleBar.activeBackground": "#810453",
+    "titleBar.activeForeground": "#FFFBFD"
+  }
 }

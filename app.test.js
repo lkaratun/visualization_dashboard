@@ -1,14 +1,11 @@
-// const fetch = require("fetch");
-import * as app from "./app";
-// const app = require("./app");
+import * as app from './app.mjs';
 
-
-describe("getListOfYearsFromDB", () => {
-  it("returns an array", async () => {
+describe('getListOfYearsFromDB', () => {
+  it('returns an array', async () => {
     expect.assertions(2);
     const responseArray = [1900, 1950, 2000];
     const resp = { json: () => responseArray };
-    const pr = new Promise((resolve, ) => {
+    const pr = new Promise(resolve => {
       if (resp) return resolve(resp);
       return null;
     });
