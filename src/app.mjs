@@ -195,10 +195,7 @@ function getMovieDetails(id) {
 }
 
 async function drawScatterPlot({ data, years }) {
-  const scatterPlot = d3
-    .select('#scatterPlot')
-    .attr('width', svgWidth)
-    .attr('height', svgHeight);
+  const scatterPlot = d3.select('#scatterPlot').attr('width', svgWidth).attr('height', svgHeight);
 
   if (data.length === 0) {
     removeOldElements(scatterPlot);
@@ -248,10 +245,7 @@ async function drawScatterPlot({ data, years }) {
     .append('g')
     .call(xAxis)
     .attr('transform', `translate (0, ${svgHeight - padding})`);
-  scatterPlot
-    .append('g')
-    .call(yAxis)
-    .attr('transform', `translate (${padding}, 0)`);
+  scatterPlot.append('g').call(yAxis).attr('transform', `translate (${padding}, 0)`);
 
   const points = scatterPlot.selectAll('circle').data(data); // , d => d.id);
 
@@ -427,9 +421,9 @@ async function drawMap({ data }) {
       .text(codeNumericToName.get(d.id))
       .style(
         'left',
-        `${coords[0] -
-          tooltip.node().offsetWidth / 2 +
-          document.getElementById('worldMap').getBoundingClientRect().x}px`
+        `${
+          coords[0] - tooltip.node().offsetWidth / 2 + document.getElementById('worldMap').getBoundingClientRect().x
+        }px`
       )
       .style(
         'top',
@@ -447,10 +441,7 @@ async function drawMap({ data }) {
   const legendWidth = svgWidth * 0.8;
   const legendHeight = 50;
 
-  await d3
-    .select('#worldMap')
-    .selectAll('g')
-    .remove();
+  await d3.select('#worldMap').selectAll('g').remove();
 
   const legend = d3
     .select('#worldMap')
@@ -465,29 +456,13 @@ async function drawMap({ data }) {
     .attr('y2', '100%')
     .attr('spreadMethod', 'pad');
 
-  legend
-    .append('stop')
-    .attr('offset', '0%')
-    .attr('stop-color', colorbrewer.Blues[5][1])
-    .attr('stop-opacity', 1);
+  legend.append('stop').attr('offset', '0%').attr('stop-color', colorbrewer.Blues[5][1]).attr('stop-opacity', 1);
 
-  legend
-    .append('stop')
-    .attr('offset', '33%')
-    .attr('stop-color', colorbrewer.Blues[5][2])
-    .attr('stop-opacity', 1);
+  legend.append('stop').attr('offset', '33%').attr('stop-color', colorbrewer.Blues[5][2]).attr('stop-opacity', 1);
 
-  legend
-    .append('stop')
-    .attr('offset', '66%')
-    .attr('stop-color', colorbrewer.Blues[5][3])
-    .attr('stop-opacity', 1);
+  legend.append('stop').attr('offset', '66%').attr('stop-color', colorbrewer.Blues[5][3]).attr('stop-opacity', 1);
 
-  legend
-    .append('stop')
-    .attr('offset', '100%')
-    .attr('stop-color', colorbrewer.Blues[5][4])
-    .attr('stop-opacity', 1);
+  legend.append('stop').attr('offset', '100%').attr('stop-color', colorbrewer.Blues[5][4]).attr('stop-opacity', 1);
 
   d3.select('#worldMap')
     .append('rect')
@@ -502,10 +477,7 @@ async function drawMap({ data }) {
     .range([0, legendWidth])
     .domain(d3.extent(Array.from(countryCodeToMovieCount.values())));
 
-  const yAxis = d3
-    .axisBottom()
-    .scale(y)
-    .ticks(5);
+  const yAxis = d3.axisBottom().scale(y).ticks(5);
 
   d3.select('#worldMap')
     .append('g')
@@ -637,10 +609,7 @@ function drawBarChart({ data }) {
   addNote(barChart, '(click to filter by genre, shift+click to select multiple genres)');
 
   // Left axis
-  barChart
-    .append('g')
-    .call(yAxis)
-    .attr('transform', `translate (${padding}, ${-paddingBottom})`);
+  barChart.append('g').call(yAxis).attr('transform', `translate (${padding}, ${-paddingBottom})`);
 } // drawBarChart
 
 function addLabel(selection, labelText) {
@@ -686,8 +655,9 @@ async function displayMovieInfo(id) {
   const rating = typeof movie.voteAverage === 'object' ? +movie.voteAverage.$numberDouble : movie.voteAverage;
   const imgBaseUrlLarge = 'https://image.tmdb.org/t/p/w185/';
   const htmlString = `
-  <img style="display: block; float:left; margin: 1%; height: auto; width: 256px;" src="${imgBaseUrlLarge +
-    movie.posterPath}" alt="Image poster not found" />
+  <img style="display: block; float:left; margin: 1%; height: auto; width: 256px;" src="${
+    imgBaseUrlLarge + movie.posterPath
+  }" alt="Image poster not found" onerror="this.onerror=null;this.src='https://i1.lensdump.com/i/jlHAck.png';" />
   <h4 style="text-align: center">${movie.title}</h4>
   <h5>Year: ${movie.releaseYear}<br>
   ${countries}<br>
@@ -696,9 +666,7 @@ async function displayMovieInfo(id) {
   Average rating: ${rating}</h5>
   <p>${movie.overview}</p>
   `;
-  d3.select('#movieInfo')
-    .html(htmlString)
-    .style('width', `${svgWidth}px`);
+  d3.select('#movieInfo').html(htmlString).style('width', `${svgWidth}px`);
 } // displayMovieInfo
 
 module.exports = { getListOfYearsFromDB, displayMovieInfo };
