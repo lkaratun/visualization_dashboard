@@ -1,13 +1,11 @@
-const { MongoClient } = require("mongodb");
-require("dotenv").load();
-const assert = require("assert");
+const { MongoClient } = require('mongodb');
+require('dotenv').config();
+const assert = require('assert');
 
 const moviesCollectionPromise = (function setUpDBConnection() {
-  const dbUrl = `mongodb://${process.env.dbUserName}:${
-    process.env.dbPassword
-  }@levkaratun.com:27017/moviesDB`;
+  const dbUrl = `mongodb://${process.env.dbUserName}:${process.env.dbPassword}@levkaratun.com:27017/moviesDB`;
   return MongoClient.connect(dbUrl)
-    .then(client => client.db("moviesDB").collection("movies"))
+    .then(client => client.db('moviesDB').collection('movies'))
     .catch(err => console.log(err));
 })();
 
@@ -24,13 +22,9 @@ async function fillReleaseYears() {
     const releaseYear = document.releaseDate.toISOString().slice(0, 4);
     console.log(document);
 
-    await moviesCollection.update(
-      { _id: document._id },
-      { $set: { releaseYear } },
-      err => {
-        assert.equal(err, null);
-      }
-    );
+    await moviesCollection.update({ _id: document._id }, { $set: { releaseYear } }, err => {
+      assert.equal(err, null);
+    });
     console.log(document._id, document.releaseDate, releaseYear);
   });
 }
